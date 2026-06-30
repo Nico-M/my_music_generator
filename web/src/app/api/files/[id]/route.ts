@@ -4,8 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
-
-const UPLOADS_DIR = '/home/nico/Workspace/Documents/demo/nestjs/singing_video/data/uploads';
+import { UPLOADS_DIR } from '@/lib/paths';
 
 export async function GET(
   req: NextRequest,

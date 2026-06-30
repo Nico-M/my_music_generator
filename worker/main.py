@@ -9,9 +9,11 @@ import time
 import sqlite3
 import json
 import os
+from pathlib import Path
 
-DB_PATH = "/home/nico/Workspace/Documents/demo/nestjs/singing_video/data/sqlite.db"
-UPLOADS_DIR = "/home/nico/Workspace/Documents/demo/nestjs/singing_video/data/uploads"
+DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).resolve().parents[1] / "data"))
+DB_PATH = os.environ.get("DATABASE_PATH", str(DATA_DIR / "sqlite.db"))
+UPLOADS_DIR = os.environ.get("UPLOADS_DIR", str(DATA_DIR / "uploads"))
 
 POLL_INTERVAL = 5  # seconds
 

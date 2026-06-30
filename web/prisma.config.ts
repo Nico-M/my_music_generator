@@ -1,4 +1,7 @@
+import path from 'path';
 import { defineConfig } from "prisma/config";
+
+const dataDir = process.env.DATA_DIR ?? path.resolve(process.cwd(), "../data");
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -6,6 +9,6 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: "file:/home/nico/Workspace/Documents/demo/nestjs/singing_video/data/sqlite.db",
+    url: process.env.DATABASE_URL ?? `file:${path.join(dataDir, "sqlite.db")}`,
   },
 });

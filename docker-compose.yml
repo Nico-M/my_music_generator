@@ -12,7 +12,10 @@ services:
     volumes:
       - ./data:/data
     environment:
+      - DATA_DIR=/data
       - DATABASE_URL=file:/data/sqlite.db
+      - UPLOADS_DIR=/data/uploads
+      - RENDERS_DIR=/data/renders
     depends_on:
       - worker
     restart: unless-stopped
@@ -23,4 +26,8 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./data:/data
+    environment:
+      - DATA_DIR=/data
+      - DATABASE_PATH=/data/sqlite.db
+      - UPLOADS_DIR=/data/uploads
     restart: unless-stopped

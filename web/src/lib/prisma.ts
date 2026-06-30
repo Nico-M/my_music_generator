@@ -1,8 +1,9 @@
 import { PrismaClient } from '../generated/prisma/client';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
+import { DATABASE_URL } from './paths';
 
 const adapter = new PrismaLibSql({
-  url: 'file:/home/nico/Workspace/Documents/demo/nestjs/singing_video/data/sqlite.db',
+  url: DATABASE_URL,
 });
 
 const prisma = new PrismaClient({ adapter });

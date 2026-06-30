@@ -6,8 +6,7 @@ import { renderMedia, selectComposition } from '@remotion/renderer';
 import path from 'path';
 import { bundle } from '@remotion/bundler';
 import { getTemplateUsername } from './template';
-
-const RENDERS_DIR = '/home/nico/Workspace/Documents/demo/nestjs/singing_video/data/renders';
+import { RENDERS_DIR } from './paths';
 
 interface LyricLine {
   index: number;

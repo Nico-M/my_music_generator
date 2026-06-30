@@ -7,8 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { execSync } from 'child_process';
 import { createId } from '@paralleldrive/cuid2';
 import fs from 'fs/promises';
-
-const UPLOADS_DIR = '/home/nico/Workspace/Documents/demo/nestjs/singing_video/data/uploads';
+import { UPLOADS_DIR } from '@/lib/paths';
 
 export async function POST(req: NextRequest) {
   try {

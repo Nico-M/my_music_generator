@@ -10,8 +10,12 @@ import { bundle } from '@remotion/bundler';
 import path from 'path';
 import { getTemplateUsername } from '../src/lib/template';
 
+const DATA_DIR = process.env.DATA_DIR ?? path.resolve(__dirname, '../../data');
+const DATABASE_URL = process.env.DATABASE_URL ?? `file:${path.join(DATA_DIR, 'sqlite.db')}`;
+const RENDERS_DIR = process.env.RENDERS_DIR ?? path.join(DATA_DIR, 'renders');
+
 const adapter = new PrismaLibSql({
-  url: 'file:/home/nico/Workspace/Documents/demo/nestjs/singing_video/data/sqlite.db',
+  url: DATABASE_URL,
 });
 const prisma = new PrismaClient({ adapter });
 
@@ -66,7 +70,7 @@ async function main() {
     });
 
     // Render
-    const outputPath = `/home/nico/Workspace/Documents/demo/nestjs/singing_video/data/renders/${project.id}.mp4`;
+    const outputPath = path.join(RENDERS_DIR, `${project.id}.mp4`);
     console.log(`Rendering to ${outputPath}...`);
     await renderMedia({
       composition,
@@ -82,10 +86,11 @@ async function main() {
       },
     });
 
-    // Mark job as done
+    // Mark job as done — store logical path
+    const resultPath = `/data/renders/${project.id}.mp4`;
     await prisma.job.update({
       where: { id: jobId },
-      data: { status: 'done', resultPath: outputPath },
+      data: { status: 'done', resultPath },
     });
 
     console.log('Render complete:', outputPath);
