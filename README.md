@@ -35,3 +35,9 @@ docker compose up --build
 ```
 
 Web 服务默认运行在 `http://localhost:3000`。
+
+## 效果示例
+
+<p align="center">
+  <img src="assets/output_example.png" alt="输出视频示例" width="540">
+</p>
