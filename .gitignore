@@ -1,0 +1,15 @@
+# Reasonix AI agent artifacts
+.reasonix/
+
+# Playwright MCP snapshots
+.playwright-mcp/
+
+# Database and uploaded files
+data/sqlite.db*
+data/uploads/
+
+# Python cache
+worker/__pycache__/
+
+# OS files
+.DS_Store

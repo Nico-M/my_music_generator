@@ -1,0 +1,26 @@
+# Singing Video Generator — Docker Compose MVP
+# Two containers: web (Next.js) + worker (Python)
+# Shared volume: ./data for SQLite DB, uploads, and renders
+
+services:
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/data
+    environment:
+      - DATABASE_URL=file:/data/sqlite.db
+    depends_on:
+      - worker
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./worker
+      dockerfile: Dockerfile
+    volumes:
+      - ./data:/data
+    restart: unless-stopped

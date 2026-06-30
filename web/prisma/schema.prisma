@@ -1,0 +1,67 @@
+// Prisma schema — SQLite MVP
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ─── Project ───
+model Project {
+  id         String  @id @default(cuid())
+  title      String
+  audioPath  String
+  durationMs Int
+  // optional fields for vocal range trimming
+  vocalStartMs Int?
+  vocalEndMs   Int?
+  // template config (JSON-serialized)
+  template    String?
+  // full ASR result with word-level timestamps
+  transcriptJson String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lines LyricLine[]
+  jobs  Job[]
+}
+
+// ─── LyricLine ───
+model LyricLine {
+  id        String  @id @default(cuid())
+  index     Int
+  text      String
+  startMs   Int?
+  endMs     Int?
+  source    String  @default("manual") // manual | transcribed | transcribed-aligned | weighted | aligned | lrc
+  confidence Float?
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// ─── Job ───
+model Job {
+  id         String  @id @default(cuid())
+  type       String  // transcribe | align | render
+  status     String  // queued | running | done | failed
+  error      String?
+  resultPath String?
+  params     String? // JSON params for the job
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+}
