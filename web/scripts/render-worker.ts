@@ -69,6 +69,9 @@ async function main() {
       },
     });
 
+    // Override with the actual project duration (Root.tsx defaults to 300 frames)
+    composition.durationInFrames = durationInFrames;
+
     // Render
     const outputPath = path.join(RENDERS_DIR, `${project.id}.mp4`);
     console.log(`Rendering to ${outputPath}...`);

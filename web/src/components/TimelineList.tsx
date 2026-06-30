@@ -14,7 +14,12 @@ export default function TimelineList() {
     (l) => l.startMs != null && l.endMs != null && currentTimeMs >= l.startMs && currentTimeMs < l.endMs
   );
 
-  const handleTap = (index: number) => updateLine(index, { startMs: currentTimeMs });
+  const handleTap = (index: number) => {
+    updateLine(index, { startMs: currentTimeMs });
+    if (index > 0) {
+      updateLine(index - 1, { endMs: currentTimeMs });
+    }
+  };
 
   const handleNudge = (index: number, field: 'startMs' | 'endMs', deltaSec: number) => {
     const line = lines[index];

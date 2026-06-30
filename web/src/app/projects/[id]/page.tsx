@@ -23,7 +23,9 @@ export default function ProjectEditorPage({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'lyrics' | 'timeline'>('lyrics');
 
-  const { project, setProject, lines } = useEditorStore();
+  const project = useEditorStore((s) => s.project);
+  const lines = useEditorStore((s) => s.lines);
+  const setProject = useEditorStore((s) => s.setProject);
   const { activeJobs, finishedJobs, track, dismiss } = useJobs();
   const reloadedJobIds = useRef<Set<string>>(new Set());
 

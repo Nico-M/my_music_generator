@@ -65,7 +65,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
     const { project, lines } = get();
     if (!project) return;
 
-    await fetch(`/api/projects/${project.id}/timeline`, {
+    const res = await fetch(`/api/projects/${project.id}/timeline`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -76,6 +76,8 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         })),
       }),
     });
+    const updated = await res.json();
+    set({ project: updated, lines: updated.lines ?? [] });
   },
 
   saveLyrics: async (texts: string[]) => {

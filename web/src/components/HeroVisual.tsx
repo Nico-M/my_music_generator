@@ -1,5 +1,26 @@
 'use client';
 
+const BAR_COUNT = 16;
+const bars = Array.from({ length: BAR_COUNT }, (_, i) => {
+  const baseHeight = +(20 + Math.sin(i * 1.2) * 28 + Math.cos(i * 0.7) * 18).toFixed(3);
+  const delay = +(i * 0.25).toFixed(2);
+  const opacity = +(0.7 + Math.sin(i * 0.8) * 0.2).toFixed(3);
+  const heights = [
+    baseHeight,
+    +(baseHeight + 12).toFixed(3),
+    +(baseHeight - 6).toFixed(3),
+    baseHeight,
+  ];
+  const yVals = heights.map((h) => +(160 - h / 2).toFixed(3));
+  const opacities = [
+    opacity,
+    0.9,
+    +(0.5 + Math.sin(i * 0.8) * 0.2).toFixed(3),
+    opacity,
+  ];
+  return { baseHeight, delay, opacity, heights, yVals, opacities, idx: i };
+});
+
 export default function HeroVisual() {
   return (
     <svg
@@ -11,13 +32,11 @@ export default function HeroVisual() {
       aria-label="Audio waveform visualization"
     >
       <defs>
-        {/* Slow-breathing gradient for waveform */}
         <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="#22c55e" stopOpacity={0.8} />
           <stop offset="50%" stopColor="#06b6d4" stopOpacity={0.5} />
           <stop offset="100%" stopColor="#22c55e" stopOpacity={0.2} />
         </linearGradient>
-        {/* Glow filter */}
         <filter id="glow">
           <feGaussianBlur stdDeviation="2" result="blur" />
           <feMerge>
@@ -27,7 +46,6 @@ export default function HeroVisual() {
         </filter>
       </defs>
 
-      {/* ── Background subtle grid ── */}
       <g opacity={0.08}>
         {Array.from({ length: 8 }).map((_, i) => (
           <line
@@ -51,47 +69,41 @@ export default function HeroVisual() {
         ))}
       </g>
 
-      {/* ── Waveform bars with breathing animation ── */}
       <g filter="url(#glow)">
-        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15].map((i) => {
-          const baseHeight = 20 + Math.sin(i * 1.2) * 28 + Math.cos(i * 0.7) * 18;
-          const delay = i * 0.25;
-          return (
-            <rect
-              key={i}
-              x={28 + i * 21}
-              y={160 - baseHeight / 2}
-              width={12}
-              height={baseHeight}
-              rx={6}
-              fill="url(#waveGrad)"
-              opacity={0.7 + Math.sin(i * 0.8) * 0.2}
-            >
-              {/* Slow-breathing / drift animation */}
-              <animate
-                attributeName="height"
-                values={`${baseHeight};${baseHeight + 12};${baseHeight - 6};${baseHeight}`}
-                dur={`${3 + (i % 3) * 0.5}s`}
-                repeatCount="indefinite"
-                begin={`${delay}s`}
-              />
-              <animate
-                attributeName="y"
-                values={`${160 - baseHeight / 2};${160 - (baseHeight + 12) / 2};${160 - (baseHeight - 6) / 2};${160 - baseHeight / 2}`}
-                dur={`${3 + (i % 3) * 0.5}s`}
-                repeatCount="indefinite"
-                begin={`${delay}s`}
-              />
-              <animate
-                attributeName="opacity"
-                values={`${0.7 + Math.sin(i * 0.8) * 0.2};0.9;${0.5 + Math.sin(i * 0.8) * 0.2};${0.7 + Math.sin(i * 0.8) * 0.2}`}
-                dur={`${4 + (i % 2) * 0.8}s`}
-                repeatCount="indefinite"
-                begin={`${delay}s`}
-              />
-            </rect>
-          );
-        })}
+        {bars.map((b) => (
+          <rect
+            key={b.idx}
+            x={28 + b.idx * 21}
+            y={b.yVals[0]}
+            width={12}
+            height={b.baseHeight}
+            rx={6}
+            fill="url(#waveGrad)"
+            opacity={b.opacity}
+          >
+            <animate
+              attributeName="height"
+              values={b.heights.join(';')}
+              dur={`${3 + (b.idx % 3) * 0.5}s`}
+              repeatCount="indefinite"
+              begin={`${b.delay}s`}
+            />
+            <animate
+              attributeName="y"
+              values={b.yVals.join(';')}
+              dur={`${3 + (b.idx % 3) * 0.5}s`}
+              repeatCount="indefinite"
+              begin={`${b.delay}s`}
+            />
+            <animate
+              attributeName="opacity"
+              values={b.opacities.join(';')}
+              dur={`${4 + (b.idx % 2) * 0.8}s`}
+              repeatCount="indefinite"
+              begin={`${b.delay}s`}
+            />
+          </rect>
+        ))}
       </g>
 
       {/* ── Timeline ticks ── */}

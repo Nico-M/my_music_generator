@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Player } from '@remotion/player';
 import type { PlayerRef } from '@remotion/player';
 import { LyricVideo } from '../../remotion/LyricVideo';
@@ -30,6 +30,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
 }) => {
   const playerRef = useRef<PlayerRef>(null);
   const fps = 30;
+  const lastUpdateRef = useRef(0);
 
   useEffect(() => {
     const ref = playerRef.current;
@@ -37,7 +38,11 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
 
     const onFrame = (e: { detail: { frame: number } }) => {
       const ms = Math.round((e.detail.frame / fps) * 1000);
-      useEditorStore.getState().setCurrentTimeMs(ms);
+      const now = Date.now();
+      if (now - lastUpdateRef.current >= 100) {
+        lastUpdateRef.current = now;
+        useEditorStore.getState().setCurrentTimeMs(ms);
+      }
     };
 
     const onPlay = () => useEditorStore.getState().setIsPlaying(true);
@@ -64,6 +69,10 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
 
   const durationInFrames = Math.max(1, Math.ceil((durationMs / 1000) * fps));
 
+  const inputProps = useMemo(() => ({
+    lines, durationMs, audioSrc: audioUrl, title, username,
+  }), [lines, durationMs, audioUrl, title, username]);
+
   return (
     <Player
       ref={playerRef}
@@ -73,7 +82,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
       compositionHeight={1920}
       fps={fps}
       controls
-      inputProps={{ lines, durationMs, audioSrc: audioUrl, title, username }}
+      inputProps={inputProps}
       style={{ width: '100%', height: '100%' }}
     />
   );
