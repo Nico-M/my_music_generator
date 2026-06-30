@@ -1,8 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { Player } from '@remotion/player';
+import type { PlayerRef } from '@remotion/player';
 import { LyricVideo } from '../../remotion/LyricVideo';
+import { useEditorStore } from '@/lib/store';
 
 interface LyricLine {
   index: number;
@@ -26,6 +28,32 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
   username,
   audioUrl,
 }) => {
+  const playerRef = useRef<PlayerRef>(null);
+  const fps = 30;
+
+  useEffect(() => {
+    const ref = playerRef.current;
+    if (!ref) return;
+
+    const onFrame = (e: { detail: { frame: number } }) => {
+      const ms = Math.round((e.detail.frame / fps) * 1000);
+      useEditorStore.getState().setCurrentTimeMs(ms);
+    };
+
+    const onPlay = () => useEditorStore.getState().setIsPlaying(true);
+    const onPause = () => useEditorStore.getState().setIsPlaying(false);
+
+    ref.addEventListener('frameupdate', onFrame);
+    ref.addEventListener('play', onPlay);
+    ref.addEventListener('pause', onPause);
+
+    return () => {
+      ref.removeEventListener('frameupdate', onFrame);
+      ref.removeEventListener('play', onPlay);
+      ref.removeEventListener('pause', onPause);
+    };
+  }, [fps]);
+
   if (durationMs <= 0) {
     return (
       <div className="flex items-center justify-center h-full text-[var(--slate-600)] text-xs">
@@ -34,11 +62,11 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     );
   }
 
-  const fps = 30;
   const durationInFrames = Math.max(1, Math.ceil((durationMs / 1000) * fps));
 
   return (
     <Player
+      ref={playerRef}
       component={LyricVideo}
       durationInFrames={durationInFrames}
       compositionWidth={1080}

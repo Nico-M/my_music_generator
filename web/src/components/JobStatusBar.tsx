@@ -1,6 +1,7 @@
 'use client';
 
 import type { TrackedJob } from '@/lib/use-jobs';
+import { useI18n } from './LanguageProvider';
 import { LoaderCircle, CheckCircle, XCircle, X } from 'lucide-react';
 
 interface JobStatusBarProps {
@@ -9,13 +10,15 @@ interface JobStatusBarProps {
   onDismiss: (jobId: string) => void;
 }
 
-const LABELS: Record<string, string> = {
-  transcribe: 'Transcribe',
-  render: 'Render',
-  align: 'Align',
-};
-
 export default function JobStatusBar({ activeJobs, finishedJobs, onDismiss }: JobStatusBarProps) {
+  const { t, locale } = useI18n();
+
+  const JOB_LABELS: Record<string, string> = {
+    transcribe: t('jobs.transcribe'),
+    render: t('jobs.render'),
+    align: t('jobs.align'),
+  };
+
   if (activeJobs.length === 0 && finishedJobs.length === 0) return null;
 
   return (
@@ -23,8 +26,8 @@ export default function JobStatusBar({ activeJobs, finishedJobs, onDismiss }: Jo
       {activeJobs.map(job => (
         <div key={job.jobId} className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
           <LoaderCircle className="animate-spin h-3.5 w-3.5 shrink-0" style={{ color: 'var(--color-accent)' }} />
-          <span style={{ color: 'var(--color-text-muted)' }}>{LABELS[job.type]}</span>
-          <span style={{ color: 'var(--color-text-subtle)' }}>{job.status === 'queued' ? 'queued' : 'running...'}</span>
+          <span style={{ color: 'var(--color-text-muted)' }}>{JOB_LABELS[job.type]}</span>
+          <span style={{ color: 'var(--color-text-subtle)' }}>{job.status === 'queued' ? t('jobs.queued') : t('jobs.processing')}</span>
         </div>
       ))}
 
@@ -43,10 +46,10 @@ export default function JobStatusBar({ activeJobs, finishedJobs, onDismiss }: Jo
             <XCircle className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--color-danger)' }} />
           )}
           <span style={{ color: job.status === 'done' ? 'var(--color-primary-light)' : 'var(--color-danger)' }}>
-            {LABELS[job.type]}
+            {JOB_LABELS[job.type]}
           </span>
           <span className="flex-1" style={{ color: job.status === 'done' ? 'var(--color-text-subtle)' : 'var(--color-danger)' }}>
-            {job.status === 'done' ? 'Complete' : (job.error || 'Failed')}
+            {job.status === 'done' ? t('jobs.complete') : (job.error || t('jobs.failed', { error: '' }).replace(': ', ''))}
           </span>
           <button
             onClick={() => onDismiss(job.jobId)}

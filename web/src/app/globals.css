@@ -4,7 +4,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Righteous&family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600&display=swap');
 @import "tailwindcss";
 
+/* ── OPPO Sans (Chinese UI font) ── */
+@font-face {
+  font-family: 'OPPOSans';
+  src: url('/fonts/OPPOSans-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OPPOSans';
+  src: url('/fonts/OPPOSans-Medium.ttf') format('truetype');
+  font-weight: 500 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OPPOSans';
+  src: url('/fonts/OPPOSans-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
+  --font-ui-zh: 'OPPOSans', 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  --font-ui-en: 'Poppins', system-ui, sans-serif;
   /* ── Core palette ── */
   --color-bg: #07080d;
   --color-surface: #11131c;
@@ -62,8 +87,16 @@
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: 'Poppins', system-ui, sans-serif;
+  font-family: var(--font-ui-en);
   -webkit-font-smoothing: antialiased;
+}
+
+html[data-lang='zh'] body {
+  font-family: var(--font-ui-zh);
+}
+
+html[data-lang='en'] body {
+  font-family: var(--font-ui-en);
 }
 
 /* ── Utility Classes ── */

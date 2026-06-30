@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useCallback } from 'react';
 import { useEditorStore } from '@/lib/store';
+import { useI18n } from './LanguageProvider';
 import { Play, Pause } from 'lucide-react';
 
 interface AudioPlayerProps {
@@ -9,6 +10,7 @@ interface AudioPlayerProps {
 }
 
 export default function AudioPlayer({ audioUrl }: AudioPlayerProps) {
+  const { t } = useI18n();
   const audioRef = useRef<HTMLAudioElement>(null);
   const { currentTimeMs, isPlaying, setCurrentTimeMs, setIsPlaying } = useEditorStore();
 
@@ -49,7 +51,7 @@ export default function AudioPlayer({ audioUrl }: AudioPlayerProps) {
         onClick={togglePlay}
         className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors"
         style={{ background: 'var(--color-primary)', color: '#fff' }}
-        title="Play/Pause (Space)"
+        title={`${t('common.space')}`}
       >
         {isPlaying ? <Pause className="w-3.5 h-3.5" fill="currentColor" /> : <Play className="w-3.5 h-3.5 ml-0.5" fill="currentColor" />}
       </button>

@@ -2,9 +2,11 @@
 
 import { useEditorStore } from '@/lib/store';
 import { useState, useCallback } from 'react';
+import { useI18n } from './LanguageProvider';
 import { Clock, Crosshair, Wand2, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function TimelineList() {
+  const { t } = useI18n();
   const { project, lines, currentTimeMs, updateLine } = useEditorStore();
   const [saving, setSaving] = useState(false);
 
@@ -49,24 +51,24 @@ export default function TimelineList() {
       {/* Toolbar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <button onClick={handleAutoSuffix} className="btn-ghost !py-1 !px-2 !text-[11px] flex items-center gap-1"><Wand2 className="w-3 h-3" /> Auto-suffix</button>
+          <button onClick={handleAutoSuffix} className="btn-ghost !py-1 !px-2 !text-[11px] flex items-center gap-1"><Wand2 className="w-3 h-3" /> {t('timeline.autoSuffix')}</button>
         </div>
         <button onClick={handleSave} disabled={saving} className="btn-primary !py-1 !px-2 !text-[11px] flex items-center gap-1">
-          {saving ? '...' : <><Save className="w-3 h-3" /> Save</>}
+          {saving ? '...' : <><Save className="w-3 h-3" /> {t('timeline.save')}</>}
         </button>
       </div>
 
       {lines.length === 0 ? (
-        <p className="text-xs italic" style={{ color: 'var(--color-text-subtle)' }}>No lines yet.</p>
+        <p className="text-xs italic" style={{ color: 'var(--color-text-subtle)' }}>{t('timeline.noLines')}</p>
       ) : (
         <div className="space-y-0.5">
           {/* Column headers */}
           <div className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium" style={{ color: 'var(--color-text-subtle)' }}>
             <span className="w-5 shrink-0" />
             <span className="w-9 shrink-0" />
-            <span className="w-[88px] text-center">Start (s)</span>
+            <span className="w-[88px] text-center">{t('timeline.start')} (s)</span>
             <span className="w-3 text-center" />
-            <span className="w-[88px] text-center">End (s)</span>
+            <span className="w-[88px] text-center">{t('timeline.end')} (s)</span>
             <span className="flex-1" />
           </div>
 
@@ -89,10 +91,10 @@ export default function TimelineList() {
                   color: 'var(--color-accent)',
                   border: '1px solid var(--color-border)',
                 }}
-                title="Set start to current playback position"
+                title={t('timeline.tapHint')}
               >
                 <Crosshair className="w-3 h-3" />
-                Tap
+                {t('timeline.tap')}
               </button>
 
               {/* Start */}
@@ -126,7 +128,7 @@ export default function TimelineList() {
               </div>
 
               {/* Text */}
-              <span className="flex-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{line.text || '(empty)'}</span>
+              <span className="flex-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{line.text || t('common.empty')}</span>
 
               {/* Source badge */}
               {line.source !== 'manual' && (
@@ -139,8 +141,8 @@ export default function TimelineList() {
 
       <div className="flex items-center gap-3 text-[11px]" style={{ color: 'var(--color-text-subtle)' }}>
         <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {fmt(currentTimeMs)}</span>
-        <span>Tap to set start</span>
-        <span className="flex items-center gap-1"><ChevronLeft className="w-3 h-3" /><ChevronRight className="w-3 h-3" /> 0.5s</span>
+        <span>{t('timeline.tapHint')}</span>
+        <span className="flex items-center gap-1"><ChevronLeft className="w-3 h-3" /><ChevronRight className="w-3 h-3" /> {t('timeline.nudgeHint')}</span>
       </div>
     </div>
   );

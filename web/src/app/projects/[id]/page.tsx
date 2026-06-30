@@ -5,9 +5,10 @@ import { useEditorStore, type Project } from '@/lib/store';
 import { useJobs } from '@/lib/use-jobs';
 import LyricDraftEditor from '@/components/LyricDraftEditor';
 import TimelineList from '@/components/TimelineList';
-import AudioPlayer from '@/components/AudioPlayer';
 import { PreviewPanel } from '@/components/PreviewPanel';
 import JobStatusBar from '@/components/JobStatusBar';
+import LanguageToggle from '@/components/LanguageToggle';
+import { useI18n } from '@/components/LanguageProvider';
 import { getTemplateUsername } from '@/lib/template';
 import { ArrowLeft, Clapperboard, FileText, Timer, LoaderCircle, CheckCircle2 } from 'lucide-react';
 
@@ -16,6 +17,7 @@ export default function ProjectEditorPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { t } = useI18n();
   const [id, setId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +89,7 @@ export default function ProjectEditorPage({
       <div className="editor-shell flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div style={{ color: 'var(--color-danger)' }} className="mb-2">✕</div>
-          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{error || 'Project not found'}</div>
+          <div className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{error || t('editor.projectNotFound')}</div>
         </div>
       </div>
     );
@@ -114,27 +116,29 @@ export default function ProjectEditorPage({
             <div className="min-w-0">
               <h1 className="text-sm font-semibold truncate" style={{ color: 'var(--color-text)' }}>{project.title}</h1>
               <p className="text-[11px]" style={{ color: 'var(--color-text-subtle)' }}>
-                {Math.round(project.durationMs / 1000)}s · {project.lines.length} lines
+                {Math.round(project.durationMs / 1000)}s · {project.lines.length} {t('common.lines')}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            <LanguageToggle />
+
             {/* Status badge */}
             {hasLines ? (
               <span className="flex items-center gap-1 text-[11px]" style={{ color: 'var(--color-primary)' }}>
                 <CheckCircle2 className="w-3 h-3" />
-                Ready
+                {t('editor.ready')}
               </span>
             ) : (
-              <span className="text-[11px]" style={{ color: 'var(--color-text-subtle)' }}>No lyrics</span>
+              <span className="text-[11px]" style={{ color: 'var(--color-text-subtle)' }}>{t('editor.noLyrics')}</span>
             )}
 
             {/* Render button — visually strongest, separate */}
             <button
               onClick={async () => {
                 if (!id) return;
-                await trackAsync(id, 'render', 'render', track);
+                await trackAsync(id, 'render', 'render', track, t);
               }}
               disabled={isRenderActive}
               className="btn-primary !py-1.5 !px-3 !text-xs"
@@ -143,12 +147,12 @@ export default function ProjectEditorPage({
               {isRenderActive ? (
                 <span className="flex items-center gap-1">
                   <LoaderCircle className="animate-spin h-3 w-3" />
-                  Rendering...
+                  {t('editor.rendering')}
                 </span>
               ) : (
                 <span className="flex items-center gap-1">
                   <Clapperboard className="w-3.5 h-3.5" />
-                  Render MP4
+                  {t('editor.renderMP4')}
                 </span>
               )}
             </button>
@@ -173,39 +177,22 @@ export default function ProjectEditorPage({
             {/* ── Unified Workspace Panel ── */}
             <div className="workspace-panel overflow-hidden">
 
-              {/* Audio row */}
-              <div className="workspace-section">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="section-label">Audio</p>
-                  </div>
-                  <span className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>Space</span>
-                </div>
-                {audioUrl ? (
-                  <AudioPlayer audioUrl={audioUrl} />
-                ) : (
-                  <p className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>No audio uploaded</p>
-                )}
-              </div>
-
-              <div className="workspace-divider" />
-
               {/* Generate toolbar */}
               <div className="workspace-section">
                 <div className="flex items-center gap-4">
-                  <span className="section-label w-20 shrink-0">Generate</span>
+                  <span className="section-label w-20 shrink-0">{t('editor.generate')}</span>
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={async () => {
                         if (!id) return;
                         if (lines.length > 0 && !confirm('Transcribing will replace all lyrics and timeline. Continue?')) return;
-                        await trackAsync(id, 'lyrics/transcribe', 'transcribe', track);
+                        await trackAsync(id, 'lyrics/transcribe', 'transcribe', track, t);
                       }}
                       disabled={activeJobs.some(j => j.type === 'transcribe')}
                       className="btn-ghost text-xs"
                       title="Speech-to-text: extract lyrics from audio using faster-whisper"
                     >
-                      Transcribe
+                      {t('editor.transcribe')}
                     </button>
                     <button
                       onClick={async () => {
@@ -217,7 +204,11 @@ export default function ProjectEditorPage({
                           const data = await res.json();
                           await reloadProject();
                           if (data.summary) {
-                            setStatusMsg(`Assisted: ${data.summary.matchedCount}/${data.summary.totalCount} matched, ${data.summary.fallbackCount} filled`);
+                            setStatusMsg(t('editor.assistedResult', {
+                              matched: data.summary.matchedCount,
+                              total: data.summary.totalCount,
+                              fallback: data.summary.fallbackCount,
+                            }));
                           }
                         } catch { alert('Assisted request failed'); }
                         finally { setSyncing(null); }
@@ -226,18 +217,18 @@ export default function ProjectEditorPage({
                       className="btn-ghost text-xs"
                       title="JS assisted alignment: character-match ASR timestamps"
                     >
-                      {syncing === 'assisted' ? '...' : 'Assisted'}
+                      {syncing === 'assisted' ? '...' : t('editor.assisted')}
                     </button>
                     <button
                       onClick={async () => {
                         if (!id) return;
-                        await trackAsync(id, 'timeline/align', 'align', track);
+                        await trackAsync(id, 'timeline/align', 'align', track, t);
                       }}
                       disabled={activeJobs.some(j => j.type === 'align')}
                       className="btn-ghost text-xs"
                       title="Python alignment: pypinyin phonetic matching"
                     >
-                      Align
+                      {t('editor.align')}
                     </button>
                     <button
                       onClick={async () => {
@@ -246,7 +237,7 @@ export default function ProjectEditorPage({
                         try {
                           await fetch(`/api/projects/${id}/timeline/weighted`, { method: 'POST' });
                           await reloadProject();
-                          setStatusMsg('Weighted layout applied (character-count distribution)');
+                          setStatusMsg(t('editor.weightedResult'));
                         } catch { alert('Weighted failed'); }
                         finally { setSyncing(null); }
                       }}
@@ -254,7 +245,7 @@ export default function ProjectEditorPage({
                       className="btn-ghost text-xs"
                       title="Weighted layout: distribute time by character count"
                     >
-                      {syncing === 'weighted' ? '...' : 'Weighted'}
+                      {syncing === 'weighted' ? '...' : t('editor.weighted')}
                     </button>
                   </div>
                 </div>
@@ -275,7 +266,7 @@ export default function ProjectEditorPage({
                       }}
                     >
                       <FileText className="w-3.5 h-3.5" />
-                      Lyrics
+                      {t('editor.lyrics')}
                     </button>
                     <button
                       onClick={() => setActiveTab('timeline')}
@@ -286,7 +277,7 @@ export default function ProjectEditorPage({
                       }}
                     >
                       <Timer className="w-3.5 h-3.5" />
-                      Timeline
+                      {t('editor.timeline')}
                     </button>
                   </div>
                 </div>
@@ -305,7 +296,7 @@ export default function ProjectEditorPage({
       {/* ── Right: Preview Stage ── */}
       <aside className="preview-stage w-full lg:w-[420px] h-[45vh] lg:h-auto shrink-0 border-t lg:border-t-0 lg:border-l" style={{ borderColor: 'var(--color-border)' }}>
         <div className="h-12 px-5 flex items-center justify-between border-b" style={{ borderColor: 'rgba(183,192,212,0.1)' }}>
-          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-muted)' }}>Preview</span>
+          <span className="text-xs font-semibold" style={{ color: 'var(--color-text-muted)' }}>{t('editor.preview')}</span>
           <span className="text-[10px]" style={{ color: 'var(--color-text-subtle)' }}>1080 &times; 1920</span>
         </div>
         <div className="flex-1 flex items-center justify-center px-8 py-8">
@@ -329,6 +320,7 @@ async function trackAsync(
   endpoint: string,
   type: 'transcribe' | 'render' | 'align',
   track: (jobId: string, type: 'transcribe' | 'render' | 'align') => void,
+  t: (key: string) => string,
 ): Promise<string | null> {
   try {
     const res = await fetch(`/api/projects/${projectId}/${endpoint}`, { method: 'POST' });

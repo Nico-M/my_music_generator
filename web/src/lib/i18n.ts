@@ -1,0 +1,202 @@
+export type Locale = 'zh' | 'en';
+
+export const DEFAULT_LOCALE: Locale = 'zh';
+
+export const messages = {
+  zh: {
+    app: {
+      name: 'SingVid',
+      tagline: '创建同步歌词视频',
+      newProject: '新建项目',
+      startCreating: '开始创建',
+      yourProjects: '你的项目',
+      total: '共 {count} 个',
+      noProjects: '还没有项目',
+      createFirst: '上传音频，创建第一个歌词视频',
+      createProject: '创建项目',
+      heroTitle1: '歌词视频',
+      heroTitle2: '几分钟搞定',
+      heroDesc: '上传音频，自动对齐歌词，微调时间线，导出精美歌词视频——无需编辑经验。',
+      uploadCreate: '上传并创建',
+    },
+    create: {
+      title: '上传音频创建项目',
+      projectTitle: '歌曲标题',
+      projectPlaceholder: '我的歌曲',
+      username: '你的名字',
+      audioFile: '音频文件 (MP3, WAV, M4A)',
+      uploadCreate: '上传并创建',
+      uploading: '上传中...',
+      cancel: '取消',
+      uploadFailed: '上传失败，请重试',
+    },
+    editor: {
+      ready: '就绪',
+      noLyrics: '无歌词',
+      rendering: '渲染中...',
+      renderMP4: '渲染 MP4',
+      workflow: '工作流',
+      generate: '生成',
+      transcribe: '识别歌词',
+      assisted: '辅助对齐',
+      align: '精确对齐',
+      weighted: '字数粗排',
+      preview: '预览',
+      lyrics: '歌词',
+      timeline: '时间线',
+      audio: '音频',
+      space: '空格',
+      noAudio: '未上传音频',
+      projectNotFound: '项目未找到',
+      assistedResult: '辅助对齐：{matched}/{total} 匹配，{fallback} 补位',
+      weightedResult: '字数粗排已应用（按字数分配时间）',
+    },
+    lyrics: {
+      title: '歌词',
+      save: '保存歌词',
+      saving: '保存中...',
+      unsaved: '未保存',
+      placeholder: '在这里粘贴歌词，每行一句...',
+      emptyTip: '粘贴歌词后，每一行会成为独立歌词行。',
+      lines: '{count} 行',
+      source: '来源：{source}',
+    },
+    timeline: {
+      autoSuffix: '自动补尾',
+      save: '保存',
+      start: '开始',
+      end: '结束',
+      tap: '打点',
+      noLines: '还没有歌词行。',
+      currentTime: '{time}',
+      tapHint: '点击设置起点',
+      nudgeHint: '左右 0.5 秒微调',
+    },
+    jobs: {
+      transcribe: '歌词识别',
+      render: '视频渲染',
+      align: '精确对齐',
+      queued: '排队中...',
+      processing: '处理中...',
+      done: '完成',
+      failed: '失败：{error}',
+      complete: '完成',
+    },
+    common: {
+      back: '返回',
+      space: '空格',
+      source: '来源',
+      lines: '行',
+      empty: '(空)',
+    },
+  },
+  en: {
+    app: {
+      name: 'SingVid',
+      tagline: 'Create synced lyric videos',
+      newProject: 'New Project',
+      startCreating: 'Start Creating',
+      yourProjects: 'Your Projects',
+      total: '{count} total',
+      noProjects: 'No projects yet',
+      createFirst: 'Upload audio to create your first lyric video',
+      createProject: 'Create Project',
+      heroTitle1: 'Lyric videos',
+      heroTitle2: 'in minutes',
+      heroDesc: 'Upload your audio, auto-sync lyrics, tweak the timeline, and render stunning lyric videos — no video editing experience needed.',
+      uploadCreate: 'Upload & Create',
+    },
+    create: {
+      title: 'Upload audio to create a project',
+      projectTitle: 'Song title',
+      projectPlaceholder: 'My Song',
+      username: 'Your name',
+      audioFile: 'Audio file (MP3, WAV, M4A)',
+      uploadCreate: 'Upload & Create',
+      uploading: 'Uploading...',
+      cancel: 'Cancel',
+      uploadFailed: 'Upload failed, please try again',
+    },
+    editor: {
+      ready: 'Ready',
+      noLyrics: 'No lyrics',
+      rendering: 'Rendering...',
+      renderMP4: 'Render MP4',
+      workflow: 'Workflow',
+      generate: 'Generate',
+      transcribe: 'Transcribe',
+      assisted: 'Assisted',
+      align: 'Align',
+      weighted: 'Weighted',
+      preview: 'Preview',
+      lyrics: 'Lyrics',
+      timeline: 'Timeline',
+      audio: 'Audio',
+      space: 'Space',
+      noAudio: 'No audio uploaded',
+      projectNotFound: 'Project not found',
+      assistedResult: 'Assisted: {matched}/{total} matched, {fallback} filled',
+      weightedResult: 'Weighted layout applied (character-count distribution)',
+    },
+    lyrics: {
+      title: 'Lyrics',
+      save: 'Save Lyrics',
+      saving: 'Saving...',
+      unsaved: 'Unsaved',
+      placeholder: 'Paste your lyrics here, one line per phrase...',
+      emptyTip: 'Paste lyrics, each line becomes a separate lyric row.',
+      lines: '{count} lines',
+      source: 'Source: {source}',
+    },
+    timeline: {
+      autoSuffix: 'Auto-suffix',
+      save: 'Save',
+      start: 'Start',
+      end: 'End',
+      tap: 'Tap',
+      noLines: 'No lines yet.',
+      currentTime: '{time}',
+      tapHint: 'Tap to set start',
+      nudgeHint: '\u25C0\u25B6 0.5s',
+    },
+    jobs: {
+      transcribe: 'Transcribe',
+      render: 'Render',
+      align: 'Align',
+      queued: 'Queued...',
+      processing: 'Processing...',
+      done: 'Done',
+      failed: 'Failed: {error}',
+      complete: 'Complete',
+    },
+    common: {
+      back: 'Back',
+      space: 'Space',
+      source: 'Source',
+      lines: 'lines',
+      empty: '(empty)',
+    },
+  },
+} as const;
+
+type Messages = typeof messages;
+type Section = keyof Messages['zh'];
+
+export function t(key: string, values: Record<string, string | number> = {}): string {
+  const parts = key.split('.');
+  const locale = getCurrentLocale();
+  let obj: any = messages[locale];
+  for (const part of parts) {
+    if (obj == null) return key;
+    obj = obj[part];
+  }
+  if (typeof obj !== 'string') return key;
+  return obj.replace(/\{(\w+)\}/g, (_, k) => String(values[k] ?? `{${k}}`));
+}
+
+function getCurrentLocale(): Locale {
+  if (typeof window === 'undefined') return DEFAULT_LOCALE;
+  const stored = localStorage.getItem('locale');
+  if (stored === 'zh' || stored === 'en') return stored;
+  return DEFAULT_LOCALE;
+}

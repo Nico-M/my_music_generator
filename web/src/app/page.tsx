@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { DEFAULT_TEMPLATE_USERNAME } from '@/lib/template';
 import HeroVisual from '@/components/HeroVisual';
+import LanguageToggle from '@/components/LanguageToggle';
+import { useI18n } from '@/components/LanguageProvider';
 import { Plus, Music2, Clock, FileText, Upload, LoaderCircle } from 'lucide-react';
 
 interface ProjectSummary {
@@ -15,6 +17,7 @@ interface ProjectSummary {
 }
 
 export default function Home() {
+  const { t } = useI18n();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
@@ -61,7 +64,7 @@ export default function Home() {
       router.push(`/projects/${project.id}`);
     } catch (err) {
       console.error('Upload failed:', err);
-      alert('上传失败，请重试');
+      alert(t('create.uploadFailed'));
     } finally {
       setUploading(false);
     }
@@ -78,13 +81,16 @@ export default function Home() {
               SingVid
             </h1>
             <p className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-              Create synced lyric videos
+              {t('app.tagline')}
             </p>
           </div>
-          <button onClick={() => setShowCreate(!showCreate)} className="btn-primary">
-            <Plus className="w-4 h-4" />
-            New Project
-          </button>
+          <div className="flex items-center gap-3">
+            <LanguageToggle />
+            <button onClick={() => setShowCreate(!showCreate)} className="btn-primary">
+              <Plus className="w-4 h-4" />
+              {t('app.newProject')}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -103,13 +109,12 @@ export default function Home() {
                 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.15] mb-4"
                 style={{ fontFamily: 'var(--font-heading)' }}
               >
-                <span style={{ color: 'var(--color-primary)' }}>Lyric videos</span>
+                <span style={{ color: 'var(--color-primary)' }}>{t('app.heroTitle1')}</span>
                 <br />
-                <span style={{ color: 'var(--color-text)' }}>in minutes</span>
+                <span style={{ color: 'var(--color-text)' }}>{t('app.heroTitle2')}</span>
               </h2>
               <p className="text-sm md:text-base max-w-md mx-auto md:mx-0 mb-6" style={{ color: 'var(--color-text-muted)' }}>
-                Upload your audio, auto-sync lyrics, tweak the timeline, and render
-                stunning lyric videos — no video editing experience needed.
+                {t('app.heroDesc')}
               </p>
               <button
                 onClick={() => {
@@ -119,7 +124,7 @@ export default function Home() {
                 className="btn-primary text-base px-7 py-3"
               >
                 <Upload className="w-4 h-4" />
-                Start Creating
+                {t('app.startCreating')}
               </button>
             </div>
 
@@ -140,26 +145,26 @@ export default function Home() {
             <div className="p-6">
               <h2 className="text-base font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
                 <Upload className="w-4 h-4" style={{ color: 'var(--color-accent)' }} />
-                Upload audio to create a project
+                {t('create.title')}
               </h2>
               <form onSubmit={handleFileUpload} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="project-title" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                      Song title
+                      {t('create.projectTitle')}
                     </label>
-                    <input id="project-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="input-field w-full" placeholder="My Song" required />
+                    <input id="project-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="input-field w-full" placeholder={t('create.projectPlaceholder')} required />
                   </div>
                   <div>
                     <label htmlFor="template-username" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                      Your name
+                      {t('create.username')}
                     </label>
                     <input id="template-username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="input-field w-full" placeholder={DEFAULT_TEMPLATE_USERNAME} />
                   </div>
                 </div>
                 <div>
                   <label htmlFor="audio-file" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                    Audio file (MP3, WAV, M4A)
+                    {t('create.audioFile')}
                   </label>
                   <input id="audio-file" type="file" accept="audio/*" className="file-input w-full" required />
                 </div>
@@ -168,11 +173,11 @@ export default function Home() {
                     {uploading ? (
                       <span className="flex items-center gap-2">
                       <LoaderCircle className="animate-spin h-4 w-4" />
-                        Uploading...
+                        {t('create.uploading')}
                       </span>
-                    ) : 'Upload & Create'}
+                    ) : t('create.uploadCreate')}
                   </button>
-                  <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary">Cancel</button>
+                  <button type="button" onClick={() => setShowCreate(false)} className="btn-secondary">{t('create.cancel')}</button>
                 </div>
               </form>
             </div>
@@ -183,10 +188,10 @@ export default function Home() {
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
-              Your Projects
+              {t('app.yourProjects')}
             </h2>
             <span className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-              {projects.length} total
+              {t('app.total', { count: projects.length })}
             </span>
           </div>
 
@@ -204,11 +209,11 @@ export default function Home() {
               <div className="flex justify-center mb-3" style={{ color: 'var(--color-text-subtle)' }}>
                 <Music2 className="w-8 h-8" />
               </div>
-              <p className="text-sm" style={{ color: 'var(--color-text-subtle)' }}>No projects yet</p>
-              <p className="text-xs mt-1 mb-4" style={{ color: 'var(--color-text-subtle)' }}>Upload audio to create your first lyric video</p>
+              <p className="text-sm" style={{ color: 'var(--color-text-subtle)' }}>{t('app.noProjects')}</p>
+              <p className="text-xs mt-1 mb-4" style={{ color: 'var(--color-text-subtle)' }}>{t('app.createFirst')}</p>
               <button onClick={() => setShowCreate(true)} className="btn-primary text-sm">
                 <Plus className="w-4 h-4" />
-                Create Project
+                {t('app.createProject')}
               </button>
             </div>
           ) : (
@@ -226,7 +231,7 @@ export default function Home() {
                     <div>
                       <h3 className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>{p.title}</h3>
                       <p className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-                        {Math.round(p.durationMs / 1000)}s · {p.lines?.length ?? 0} lines
+                        {Math.round(p.durationMs / 1000)}s · {p.lines?.length ?? 0} {t('common.lines')}
                       </p>
                     </div>
                   </div>
