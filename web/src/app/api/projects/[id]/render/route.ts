@@ -29,10 +29,12 @@ export async function POST(
     }
 
     // Create job record
+    const renderBaseUrl = process.env.RENDER_BASE_URL ?? req.nextUrl.origin;
     const job = await prisma.job.create({
       data: {
         type: 'render',
         status: 'queued',
+        params: JSON.stringify({ renderBaseUrl }),
         projectId: id,
       },
     });

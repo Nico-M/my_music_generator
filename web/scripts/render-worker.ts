@@ -7,6 +7,7 @@ import { PrismaClient } from '../src/generated/prisma/client';
 import { PrismaLibSql } from '@prisma/adapter-libsql';
 import { renderMedia, selectComposition } from '@remotion/renderer';
 import { bundle } from '@remotion/bundler';
+import fs from 'fs/promises';
 import path from 'path';
 import { getTemplateUsername } from '../src/lib/template';
 
@@ -18,6 +19,10 @@ const adapter = new PrismaLibSql({
   url: DATABASE_URL,
 });
 const prisma = new PrismaClient({ adapter });
+
+interface RenderJobParams {
+  renderBaseUrl?: string;
+}
 
 async function main() {
   const jobId = process.argv[2];
@@ -48,11 +53,13 @@ async function main() {
 
     const durationInFrames = Math.max(1, Math.ceil(((project.durationMs || 0) / 1000) * 30));
     const username = getTemplateUsername(project.template);
+    const renderParams = parseRenderJobParams(job.params);
+    const audioSrc = toAbsoluteFileUrl(project.audioPath, renderParams.renderBaseUrl);
 
     // Bundle the Remotion project
     console.log('Bundling Remotion project...');
     const bundlePath = await bundle({
-      entryPoint: path.resolve(__dirname, '../remotion/Root.tsx'),
+      entryPoint: path.resolve(__dirname, '../remotion/index.ts'),
     });
 
     // Select composition
@@ -64,7 +71,7 @@ async function main() {
         lines: project.lines,
         title: project.title,
         username,
-        audioSrc: project.audioPath.replace('/data/uploads/', '/api/files/'),
+        audioSrc,
         durationMs: project.durationMs,
       },
     });
@@ -74,6 +81,7 @@ async function main() {
 
     // Render
     const outputPath = path.join(RENDERS_DIR, `${project.id}.mp4`);
+    await fs.mkdir(RENDERS_DIR, { recursive: true });
     console.log(`Rendering to ${outputPath}...`);
     await renderMedia({
       composition,
@@ -84,7 +92,7 @@ async function main() {
         lines: project.lines,
         title: project.title,
         username,
-        audioSrc: project.audioPath.replace('/data/uploads/', '/api/files/'),
+        audioSrc,
         durationMs: project.durationMs,
       },
     });
@@ -107,6 +115,29 @@ async function main() {
   } finally {
     await prisma.$disconnect();
   }
+}
+
+function parseRenderJobParams(params: string | null): RenderJobParams {
+  if (!params) return {};
+
+  try {
+    return JSON.parse(params) as RenderJobParams;
+  } catch {
+    return {};
+  }
+}
+
+function toAbsoluteFileUrl(audioPath: string, renderBaseUrl?: string): string {
+  if (/^https?:\/\//.test(audioPath)) return audioPath;
+
+  const apiPath = audioPath.replace('/data/uploads/', '/api/files/');
+  const baseUrl = renderBaseUrl ?? process.env.RENDER_BASE_URL;
+  if (!baseUrl) {
+    throw new Error('Missing renderBaseUrl for local audio asset rendering');
+  }
+
+  // Remotion renderer 会启动自己的临时服务器；音频必须指向真实 Web 服务。
+  return new URL(apiPath, baseUrl).toString();
 }
 
 main();

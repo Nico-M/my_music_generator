@@ -21,13 +21,15 @@ export async function renderLyricVideo(
   title: string,
   audioPath: string,
   durationInFrames: number,
-  template?: string | null
+  template?: string | null,
+  renderBaseUrl?: string
 ): Promise<string> {
   const username = getTemplateUsername(template);
+  const audioSrc = toAbsoluteFileUrl(audioPath, renderBaseUrl);
 
   // Bundle the Remotion project
   const bundlePath = await bundle({
-    entryPoint: path.resolve(process.cwd(), 'remotion/Root.tsx'),
+    entryPoint: path.resolve(process.cwd(), 'remotion/index.ts'),
   });
 
   // Select the composition
@@ -38,7 +40,7 @@ export async function renderLyricVideo(
       lines,
       title,
       username,
-      audioSrc: audioPath.replace('/data/uploads/', '/api/files/'),
+      audioSrc,
       durationMs: Math.round((durationInFrames / 30) * 1000),
     },
   });
@@ -54,10 +56,23 @@ export async function renderLyricVideo(
       lines,
       title,
       username,
-      audioSrc: audioPath.replace('/data/uploads/', '/api/files/'),
+      audioSrc,
       durationMs: Math.round((durationInFrames / 30) * 1000),
     },
   });
 
   return outputPath;
+}
+
+function toAbsoluteFileUrl(audioPath: string, renderBaseUrl?: string): string {
+  if (/^https?:\/\//.test(audioPath)) return audioPath;
+
+  const apiPath = audioPath.replace('/data/uploads/', '/api/files/');
+  const baseUrl = renderBaseUrl ?? process.env.RENDER_BASE_URL;
+  if (!baseUrl) {
+    throw new Error('Missing renderBaseUrl for local audio asset rendering');
+  }
+
+  // 离线渲染不能使用相对 API 路径，否则会被解析到 Remotion 临时服务。
+  return new URL(apiPath, baseUrl).toString();
 }
