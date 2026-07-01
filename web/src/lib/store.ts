@@ -18,6 +18,9 @@ export interface Project {
   durationMs: number;
   vocalStartMs: number | null;
   vocalEndMs: number | null;
+  creatorName: string | null;
+  templateId: string;
+  templateConfig: string | null;
   template: string | null;
   singer: string | null;
   transcriptJson: string | null;

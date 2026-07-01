@@ -19,8 +19,12 @@ model Project {
   // optional fields for vocal range trimming
   vocalStartMs Int?
   vocalEndMs   Int?
-  // template config (JSON-serialized)
-  template    String?
+  // template system (phase 2)
+  creatorName    String?
+  templateId     String  @default("notes")
+  templateConfig String?
+  // legacy template config (JSON-serialized) for migration window
+  template       String?
   // singer/artist name — shown as subtitle in rendered video
   singer      String?
   // optional initial lyrics text entered during project creation

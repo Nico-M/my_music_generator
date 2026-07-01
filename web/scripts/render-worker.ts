@@ -9,7 +9,7 @@ import { renderMedia, selectComposition } from '@remotion/renderer';
 import { bundle } from '@remotion/bundler';
 import fs from 'fs/promises';
 import path from 'path';
-import { getTemplateUsername } from '../src/lib/template';
+import { buildRenderInput, getDurationInFrames } from '../src/lib/template';
 
 const DATA_DIR = process.env.DATA_DIR ?? path.resolve(__dirname, '../../data');
 const DATABASE_URL = process.env.DATABASE_URL ?? `file:${path.join(DATA_DIR, 'sqlite.db')}`;
@@ -51,10 +51,21 @@ async function main() {
     // Mark job as running
     await prisma.job.update({ where: { id: jobId }, data: { status: 'running' } });
 
-    const durationInFrames = Math.max(1, Math.ceil(((project.durationMs || 0) / 1000) * 30));
-    const username = getTemplateUsername(project.template);
+    const durationInFrames = getDurationInFrames(project.durationMs || 0);
     const renderParams = parseRenderJobParams(job.params);
-    const audioSrc = toAbsoluteFileUrl(project.audioPath, renderParams.renderBaseUrl);
+    const renderInput = buildRenderInput({
+      mode: 'render',
+      title: project.title,
+      singer: project.singer,
+      creatorName: project.creatorName,
+      audioPath: project.audioPath,
+      durationMs: project.durationMs,
+      lines: project.lines,
+      templateId: project.templateId,
+      templateConfig: project.templateConfig,
+      legacyTemplate: project.template,
+      renderBaseUrl: renderParams.renderBaseUrl,
+    });
 
     // Bundle the Remotion project
     console.log('Bundling Remotion project...');
@@ -67,14 +78,7 @@ async function main() {
     const composition = await selectComposition({
       serveUrl: bundlePath,
       id: 'LyricVideo',
-      inputProps: {
-        lines: project.lines,
-        title: project.title,
-        username,
-        singer: project.singer ?? undefined,
-        audioSrc,
-        durationMs: project.durationMs,
-      },
+      inputProps: renderInput,
     });
 
     // Override with the actual project duration (Root.tsx defaults to 300 frames)
@@ -89,14 +93,7 @@ async function main() {
       serveUrl: bundlePath,
       codec: 'h264',
       outputLocation: outputPath,
-      inputProps: {
-        lines: project.lines,
-        title: project.title,
-        username,
-        singer: project.singer ?? undefined,
-        audioSrc,
-        durationMs: project.durationMs,
-      },
+      inputProps: renderInput,
     });
 
     // Mark job as done — store logical path
@@ -127,19 +124,6 @@ function parseRenderJobParams(params: string | null): RenderJobParams {
   } catch {
     return {};
   }
-}
-
-function toAbsoluteFileUrl(audioPath: string, renderBaseUrl?: string): string {
-  if (/^https?:\/\//.test(audioPath)) return audioPath;
-
-  const apiPath = audioPath.replace('/data/uploads/', '/api/files/');
-  const baseUrl = renderBaseUrl ?? process.env.RENDER_BASE_URL;
-  if (!baseUrl) {
-    throw new Error('Missing renderBaseUrl for local audio asset rendering');
-  }
-
-  // Remotion renderer 会启动自己的临时服务器；音频必须指向真实 Web 服务。
-  return new URL(apiPath, baseUrl).toString();
 }
 
 main();

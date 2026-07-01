@@ -12,13 +12,14 @@ interface LyricLine {
 interface ScrollingListProps {
   lines: LyricLine[];
   currentIdx: number;
+  showCheckbox?: boolean;
 }
 
 const LINE_HEIGHT = 78;
 const VIEWPORT_H = 1120;
 const CHECK_SIZE = 58;
 
-export const ScrollingList: React.FC<ScrollingListProps> = ({ lines, currentIdx }) => {
+export const ScrollingList: React.FC<ScrollingListProps> = ({ lines, currentIdx, showCheckbox = true }) => {
   // 让当前行尽量停在截图中上半部分，而不是居中造成 Note 样式漂移。
   const activeIndex = Math.max(currentIdx, 0);
   const targetScroll = activeIndex * LINE_HEIGHT - 58;
@@ -58,32 +59,34 @@ export const ScrollingList: React.FC<ScrollingListProps> = ({ lines, currentIdx 
               }}
             >
               {/* Checkbox circle */}
-              <div
-                style={{
-                  width: CHECK_SIZE,
-                  height: CHECK_SIZE,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  border: isChecked ? 'none' : '4px solid #5d5d62',
-                  backgroundColor: isChecked ? '#ffd12e' : 'transparent',
-                  boxSizing: 'border-box',
-                }}
-              >
-                {isChecked && (
-                  <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-                    <path
-                      d="M8.3 17.6L14.2 23.4L26 10.7"
-                      stroke="#161616"
-                      strokeWidth="4.6"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                )}
-              </div>
+              {showCheckbox ? (
+                <div
+                  style={{
+                    width: CHECK_SIZE,
+                    height: CHECK_SIZE,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    border: isChecked ? 'none' : '4px solid #5d5d62',
+                    backgroundColor: isChecked ? '#ffd12e' : 'transparent',
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {isChecked && (
+                    <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
+                      <path
+                        d="M8.3 17.6L14.2 23.4L26 10.7"
+                        stroke="#161616"
+                        strokeWidth="4.6"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </div>
+              ) : null}
 
               {/* Text */}
               <span

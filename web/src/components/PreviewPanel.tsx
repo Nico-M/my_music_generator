@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { Player } from '@remotion/player';
 import type { PlayerRef } from '@remotion/player';
-import { LyricVideo } from '../../remotion/LyricVideo';
 import { useEditorStore } from '@/lib/store';
+import { TemplateVideo } from '../../remotion/TemplateVideo';
+import { buildRenderInput, FPS, getDurationInFrames } from '@/lib/template';
 
 interface LyricLine {
   index: number;
@@ -17,21 +18,27 @@ interface PreviewPanelProps {
   lines: LyricLine[];
   durationMs: number;
   title: string;
-  username: string;
+  creatorName?: string | null;
   singer?: string | null;
-  audioUrl?: string;
+  audioPath: string;
+  templateId?: string | null;
+  templateConfig?: string | null;
+  legacyTemplate?: string | null;
 }
 
 export const PreviewPanel: React.FC<PreviewPanelProps> = ({
   lines,
   durationMs,
   title,
-  username,
+  creatorName,
   singer,
-  audioUrl,
+  audioPath,
+  templateId,
+  templateConfig,
+  legacyTemplate,
 }) => {
   const playerRef = useRef<PlayerRef>(null);
-  const fps = 30;
+  const fps = FPS;
   const lastUpdateRef = useRef(0);
 
   useEffect(() => {
@@ -69,17 +76,29 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
     );
   }
 
-  const durationInFrames = Math.max(1, Math.ceil((durationMs / 1000) * fps));
+  const durationInFrames = getDurationInFrames(durationMs);
 
-  const inputProps = useMemo(() => ({
-    lines, durationMs, audioSrc: audioUrl, title, username,
-    singer: singer ?? undefined,
-  }), [lines, durationMs, audioUrl, title, username, singer]);
+  const inputProps = useMemo(
+    () =>
+      buildRenderInput({
+        mode: 'preview',
+        title,
+        singer,
+        creatorName,
+        audioPath,
+        durationMs,
+        lines,
+        templateId,
+        templateConfig,
+        legacyTemplate,
+      }),
+    [title, singer, creatorName, audioPath, durationMs, lines, templateId, templateConfig, legacyTemplate]
+  );
 
   return (
     <Player
       ref={playerRef}
-      component={LyricVideo}
+      component={TemplateVideo}
       durationInFrames={durationInFrames}
       compositionWidth={1080}
       compositionHeight={1920}

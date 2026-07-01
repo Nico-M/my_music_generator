@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { DEFAULT_TEMPLATE_USERNAME } from '@/lib/template';
+import { DEFAULT_CREATOR_NAME, DEFAULT_TEMPLATE_ID } from '@/lib/template';
 import HeroVisual from '@/components/HeroVisual';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useI18n } from '@/components/LanguageProvider';
@@ -24,7 +24,7 @@ export default function Home() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState('');
-  const [username, setUsername] = useState(DEFAULT_TEMPLATE_USERNAME);
+  const [creatorName, setCreatorName] = useState(DEFAULT_CREATOR_NAME);
   const [singer, setSinger] = useState('');
   const [lyrics, setLyrics] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -68,9 +68,11 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: title.trim(),
-          username: username.trim(),
+          creatorName: creatorName.trim(),
           singer: singer.trim() || undefined,
           lyrics: lyrics.trim() || undefined,
+          templateId: DEFAULT_TEMPLATE_ID,
+          templateConfig: {},
           audioPath,
           durationMs,
         }),
@@ -176,7 +178,7 @@ export default function Home() {
                     <label htmlFor="template-brand" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
                       {t('create.brand')}
                     </label>
-                    <input id="template-brand" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="input-field w-full" placeholder={t('create.brandPlaceholder')} />
+                    <input id="template-brand" type="text" value={creatorName} onChange={(e) => setCreatorName(e.target.value)} className="input-field w-full" placeholder={t('create.brandPlaceholder')} />
                   </div>
                   <div>
                     <label htmlFor="project-singer" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>

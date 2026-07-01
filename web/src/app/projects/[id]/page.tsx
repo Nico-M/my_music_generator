@@ -9,7 +9,7 @@ import { PreviewPanel } from '@/components/PreviewPanel';
 import JobStatusBar from '@/components/JobStatusBar';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useI18n } from '@/components/LanguageProvider';
-import { getTemplateUsername } from '@/lib/template';
+import { DEFAULT_TEMPLATE_ID, resolveCreatorName } from '@/lib/template';
 import { ArrowLeft, Clapperboard, FileText, Timer, LoaderCircle, CheckCircle2 } from 'lucide-react';
 
 export default function ProjectEditorPage({
@@ -97,9 +97,7 @@ export default function ProjectEditorPage({
     );
   }
 
-  const audioUrl = project.audioPath
-    ? project.audioPath.replace('/data/uploads/', '/api/files/')
-    : undefined;
+  const creatorName = resolveCreatorName(project.creatorName, project.template);
 
   return (
     <div className="editor-shell flex flex-col lg:flex-row h-screen">
@@ -182,16 +180,15 @@ export default function ProjectEditorPage({
                 <label className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('create.brand')}</label>
                 <input
                   type="text"
-                  defaultValue={getTemplateUsername(project.template)}
+                  defaultValue={creatorName}
                   onBlur={async (e) => {
                     const val = e.target.value.trim();
                     if (!val || !id) return;
-                    const newTemplate = JSON.stringify({ username: val });
                     try {
                       await fetch(`/api/projects/${id}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ template: newTemplate }),
+                        body: JSON.stringify({ creatorName: val }),
                       });
                       reloadProject();
                     } catch { /* ignore */ }
@@ -199,6 +196,27 @@ export default function ProjectEditorPage({
                   className="input-field !py-1 !text-xs w-28"
                   placeholder={t('create.brandPlaceholder')}
                 />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Template</label>
+                <select
+                  defaultValue={project.templateId ?? DEFAULT_TEMPLATE_ID}
+                  onChange={async (e) => {
+                    if (!id) return;
+                    try {
+                      await fetch(`/api/projects/${id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ templateId: e.target.value }),
+                      });
+                      reloadProject();
+                    } catch { /* ignore */ }
+                  }}
+                  className="input-field !py-1 !text-xs w-28"
+                >
+                  <option value="notes">Notes</option>
+                  <option value="record">Record</option>
+                </select>
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('create.singer')}</label>
@@ -354,9 +372,12 @@ export default function ProjectEditorPage({
               lines={lines}
               durationMs={project.durationMs}
               title={project.title}
-              username={getTemplateUsername(project.template)}
+              creatorName={project.creatorName}
               singer={project.singer ?? undefined}
-              audioUrl={audioUrl}
+              audioPath={project.audioPath}
+              templateId={project.templateId}
+              templateConfig={project.templateConfig}
+              legacyTemplate={project.template}
             />
           </div>
         </div>
