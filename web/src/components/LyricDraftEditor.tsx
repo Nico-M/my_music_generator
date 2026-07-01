@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useEditorStore, type LyricLine } from '@/lib/store';
 import { useI18n } from './LanguageProvider';
-import { Save } from 'lucide-react';
 
 export default function LyricDraftEditor() {
   const { t } = useI18n();

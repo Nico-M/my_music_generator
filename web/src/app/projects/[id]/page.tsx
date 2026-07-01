@@ -10,7 +10,7 @@ import JobStatusBar from '@/components/JobStatusBar';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useI18n } from '@/components/LanguageProvider';
 import { DEFAULT_TEMPLATE_ID, resolveCreatorName } from '@/lib/template';
-import { ArrowLeft, Clapperboard, FileText, Timer, LoaderCircle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Clapperboard, FileText, Timer, LoaderCircle, CheckCircle2 } from '@/components/icons/IonIcons';
 
 export default function ProjectEditorPage({
   params,

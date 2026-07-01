@@ -2,7 +2,7 @@
 
 import type { TrackedJob } from '@/lib/use-jobs';
 import { useI18n } from './LanguageProvider';
-import { LoaderCircle, CheckCircle, XCircle, X } from 'lucide-react';
+import { LoaderCircle, CheckCircle, XCircle, X } from '@/components/icons/IonIcons';
 
 interface JobStatusBarProps {
   activeJobs: TrackedJob[];
