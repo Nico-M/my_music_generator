@@ -55,6 +55,9 @@ export const messages = {
       projectNotFound: '项目未找到',
       assistedResult: '辅助对齐：{matched}/{total} 匹配，{fallback} 补位',
       weightedResult: '字数粗排已应用（按字数分配时间）',
+      downloadRendered: '下载视频',
+      previewRendered: '预览视频',
+      renderReady: '视频已渲染完成',
     },
     lyrics: {
       title: '歌词',
@@ -147,6 +150,9 @@ export const messages = {
       projectNotFound: 'Project not found',
       assistedResult: 'Assisted: {matched}/{total} matched, {fallback} filled',
       weightedResult: 'Weighted layout applied (character-count distribution)',
+      downloadRendered: 'Download Video',
+      previewRendered: 'Preview Video',
+      renderReady: 'Video rendered',
     },
     lyrics: {
       title: 'Lyrics',

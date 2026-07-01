@@ -78,6 +78,13 @@ export default function ProjectEditorPage({
   const isRenderActive = activeJobs.some(j => j.type === 'render');
   const hasLines = lines.length > 0;
 
+  // Find the most recent completed render job
+  const doneRenderJob = finishedJobs.find(j => j.type === 'render' && j.status === 'done');
+  // Show buttons only when a render has completed and no new render is active
+  const showRenderButtons = !!doneRenderJob && !isRenderActive;
+  const downloadUrl = id ? `/api/files/${id}/download` : '#';
+  const previewUrl = id ? `/api/files/${id}/preview` : '#';
+
   if (loading) {
     return (
       <div className="editor-shell flex items-center justify-center min-h-screen">
@@ -165,6 +172,30 @@ export default function ProjectEditorPage({
 
             {/* ── Job Status ── */}
             <JobStatusBar activeJobs={activeJobs} finishedJobs={finishedJobs} onDismiss={dismiss} />
+
+            {/* ── Render result buttons ── */}
+            {showRenderButtons && (
+              <div className="flex items-center gap-3 px-3 py-3 rounded-lg mb-3" style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
+                <span className="text-xs font-medium" style={{ color: 'var(--color-primary-light)' }}>{t('editor.renderReady')}</span>
+                <div className="flex items-center gap-2 ml-auto">
+                  <a
+                    href={downloadUrl}
+                    className="btn-primary !py-1.5 !px-3 !text-xs !no-underline inline-flex items-center gap-1"
+                    download
+                  >
+                    {t('editor.downloadRendered')}
+                  </a>
+                  <a
+                    href={previewUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn-ghost !py-1.5 !px-3 !text-xs !no-underline inline-flex items-center gap-1"
+                  >
+                    {t('editor.previewRendered')}
+                  </a>
+                </div>
+              </div>
+            )}
 
             {/* Status message */}
             {statusMsg && (
