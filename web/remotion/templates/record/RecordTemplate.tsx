@@ -4,6 +4,14 @@ import type { TemplateRenderProps } from '../types';
 import type { RecordTemplateConfig } from './config';
 import { getActiveLineState } from '../shared/timing';
 
+const ionChevronBackPoints = '328 112 184 256 328 400';
+const ionSearchPath = 'M456.69,421.39,362.6,327.3a173.81,173.81,0,0,0,34.84-104.58C397.44,126.38,319.06,48,222.72,48S48,126.38,48,222.72s78.38,174.72,174.72,174.72A173.81,173.81,0,0,0,327.3,362.6l94.09,94.09a25,25,0,0,0,35.3-35.3ZM97.92,222.72a124.8,124.8,0,1,1,124.8,124.8A124.95,124.95,0,0,1,97.92,222.72Z';
+const ionPlayPath = 'M133,440a35.37,35.37,0,0,1-17.5-4.67c-12-6.8-19.46-20-19.46-34.33V111c0-14.37,7.46-27.53,19.46-34.33a35.13,35.13,0,0,1,35.77.45L399.12,225.48a36,36,0,0,1,0,61L151.23,434.88A35.5,35.5,0,0,1,133,440Z';
+const ionSkipBackPath = 'M112,64a16,16,0,0,1,16,16V216.43L360.77,77.11a35.13,35.13,0,0,1,35.77-.44c12,6.8,19.46,20,19.46,34.33V401c0,14.37-7.46,27.53-19.46,34.33a35.14,35.14,0,0,1-35.77-.45L128,295.57V432a16,16,0,0,1-32,0V80A16,16,0,0,1,112,64Z';
+const ionSkipForwardPath = 'M400,64a16,16,0,0,0-16,16V216.43L151.23,77.11a35.13,35.13,0,0,0-35.77-.44C103.46,83.47,96,96.63,96,111V401c0,14.37,7.46,27.53,19.46,34.33a35.14,35.14,0,0,0,35.77-.45L384,295.57V432a16,16,0,0,0,32,0V80A16,16,0,0,0,400,64Z';
+const ionTrashTopPath = 'M296,64H216a7.91,7.91,0,0,0-8,8V96h96V72A7.91,7.91,0,0,0,296,64Z';
+const ionTrashBodyPath = 'M432,96H336V72a40,40,0,0,0-40-40H216a40,40,0,0,0-40,40V96H80a16,16,0,0,0,0,32H97L116,432.92c1.42,26.85,22,47.08,48,47.08H348c26.13,0,46.3-19.78,48-47L415,128h17a16,16,0,0,0,0-32ZM192.57,416H192a16,16,0,0,1-16-15.43l-8-224a16,16,0,1,1,32-1.14l8,224A16,16,0,0,1,192.57,416ZM272,400a16,16,0,0,1-32,0V176a16,16,0,0,1,32,0ZM304,96H208V72a7.91,7.91,0,0,1,8-8h80a7.91,7.91,0,0,1,8,8Zm32,304.57A16,16,0,0,1,320,416h-.58A16,16,0,0,1,304,399.43l8-224a16,16,0,1,1,32,1.14Z';
+
 function formatSeconds(totalMs: number): string {
   const safeMs = Math.max(0, totalMs);
   const totalSeconds = Math.floor(safeMs / 1000);
@@ -77,16 +85,9 @@ export const RecordTemplate: React.FC<TemplateRenderProps<RecordTemplateConfig>>
       }}
       >
       <div style={iconButtonStyle}>
-        <div
-          style={{
-            width: 30,
-            height: 30,
-            borderLeft: '7px solid #FFFFFF',
-            borderBottom: '7px solid #FFFFFF',
-            transform: 'rotate(45deg)',
-            marginLeft: 16,
-          }}
-        />
+        <svg viewBox="0 0 512 512" width={58} height={58} fill="none" stroke="#FFFFFF" strokeWidth={44} strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 10 }}>
+          <polyline points={ionChevronBackPoints} />
+        </svg>
       </div>
       <div style={{ display: 'flex', gap: 24 }}>
         <div
@@ -109,28 +110,9 @@ export const RecordTemplate: React.FC<TemplateRenderProps<RecordTemplateConfig>>
           Select
         </div>
         <div style={iconButtonStyle}>
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              border: '7px solid #FFFFFF',
-              borderRadius: '50%',
-              position: 'relative',
-            }}
-          >
-            <div
-              style={{
-                position: 'absolute',
-                width: 22,
-                height: 7,
-                borderRadius: 99,
-                backgroundColor: '#FFFFFF',
-                right: -14,
-                bottom: -8,
-                transform: 'rotate(45deg)',
-              }}
-            />
-          </div>
+          <svg viewBox="0 0 512 512" width={62} height={62} fill="#FFFFFF">
+            <path d={ionSearchPath} />
+          </svg>
         </div>
       </div>
       </div>
@@ -283,15 +265,14 @@ export const RecordTemplate: React.FC<TemplateRenderProps<RecordTemplateConfig>>
             height: 124,
             borderRadius: '50%',
             border: '7px solid #FFFFFF',
-            color: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 68,
-            fontWeight: 500,
           }}
         >
-          15
+          <svg viewBox="0 0 512 512" width={56} height={56} fill="#FFFFFF">
+            <path d={ionSkipBackPath} />
+          </svg>
         </div>
         <div
           style={{
@@ -302,16 +283,9 @@ export const RecordTemplate: React.FC<TemplateRenderProps<RecordTemplateConfig>>
             justifyContent: 'center',
           }}
         >
-          <div
-            style={{
-              width: 0,
-              height: 0,
-              borderTop: '52px solid transparent',
-              borderBottom: '52px solid transparent',
-              borderLeft: '84px solid #F2F2F3',
-              marginLeft: 18,
-            }}
-          />
+          <svg viewBox="0 0 512 512" width={88} height={88} fill="#F2F2F3">
+            <path d={ionPlayPath} />
+          </svg>
         </div>
         <div
           style={{
@@ -319,38 +293,28 @@ export const RecordTemplate: React.FC<TemplateRenderProps<RecordTemplateConfig>>
             height: 124,
             borderRadius: '50%',
             border: '7px solid #FFFFFF',
-            color: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 68,
-            fontWeight: 500,
           }}
         >
-          15
+          <svg viewBox="0 0 512 512" width={56} height={56} fill="#FFFFFF">
+            <path d={ionSkipForwardPath} />
+          </svg>
         </div>
         <div
           style={{
-            width: 92,
+            width: 104,
             height: 104,
-            border: '7px solid #0A84FF',
-            borderTopWidth: 12,
-            borderRadius: '14px 14px 20px 20px',
-            position: 'relative',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          <div
-            style={{
-              position: 'absolute',
-              top: -34,
-              left: 22,
-              width: 36,
-              height: 20,
-              border: '7px solid #0A84FF',
-              borderBottom: 'none',
-              borderRadius: '12px 12px 0 0',
-            }}
-          />
+          <svg viewBox="0 0 512 512" width={68} height={68} fill="#0A84FF">
+            <path d={ionTrashTopPath} style={{ fill: 'none' }} />
+            <path d={ionTrashBodyPath} />
+          </svg>
         </div>
       </div>
       <div
