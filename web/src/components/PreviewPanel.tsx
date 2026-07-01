@@ -18,6 +18,7 @@ interface PreviewPanelProps {
   durationMs: number;
   title: string;
   username: string;
+  singer?: string | null;
   audioUrl?: string;
 }
 
@@ -26,6 +27,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
   durationMs,
   title,
   username,
+  singer,
   audioUrl,
 }) => {
   const playerRef = useRef<PlayerRef>(null);
@@ -71,7 +73,8 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
 
   const inputProps = useMemo(() => ({
     lines, durationMs, audioSrc: audioUrl, title, username,
-  }), [lines, durationMs, audioUrl, title, username]);
+    singer: singer ?? undefined,
+  }), [lines, durationMs, audioUrl, title, username, singer]);
 
   return (
     <Player

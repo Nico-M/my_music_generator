@@ -37,7 +37,7 @@ export async function PATCH(
     const body = await req.json();
 
     // Only allow updating specific fields
-    const allowedFields = ['title', 'vocalStartMs', 'vocalEndMs', 'template'];
+    const allowedFields = ['title', 'vocalStartMs', 'vocalEndMs', 'template', 'singer'];
     const data: Record<string, unknown> = {};
     for (const key of allowedFields) {
       if (body[key] !== undefined) {

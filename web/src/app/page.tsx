@@ -11,6 +11,7 @@ import { Plus, Music2, Clock, FileText, Upload, LoaderCircle } from 'lucide-reac
 interface ProjectSummary {
   id: string;
   title: string;
+  singer?: string | null;
   durationMs: number;
   createdAt: string;
   lines: { id: string }[];
@@ -20,24 +21,33 @@ export default function Home() {
   const { t } = useI18n();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState('');
   const [username, setUsername] = useState(DEFAULT_TEMPLATE_USERNAME);
+  const [singer, setSinger] = useState('');
+  const [lyrics, setLyrics] = useState('');
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    fetch('/api/projects')
-      .then((res) => {
-        if (!res.ok) throw new Error('Failed to load');
-        return res.json();
-      })
-      .then((data) => {
-        setProjects(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+    loadProjects();
   }, []);
+
+  async function loadProjects() {
+    try {
+      const res = await fetch('/api/projects');
+      if (!res.ok) throw new Error('Failed to load');
+      const data = await res.json();
+      setProjects(data);
+      setLoadError(null);
+    } catch (err) {
+      console.error('Failed to load projects:', err);
+      setLoadError('加载项目失败，请刷新页面重试。如果持续失败，请联系开发者。');
+    } finally {
+      setLoading(false);
+    }
+  }
 
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +66,14 @@ export default function Home() {
       const projectRes = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: title.trim(), username: username.trim(), audioPath, durationMs }),
+        body: JSON.stringify({
+          title: title.trim(),
+          username: username.trim(),
+          singer: singer.trim() || undefined,
+          lyrics: lyrics.trim() || undefined,
+          audioPath,
+          durationMs,
+        }),
       });
       if (!projectRes.ok) throw new Error('Create failed');
       const project = await projectRes.json();
@@ -156,17 +173,37 @@ export default function Home() {
                     <input id="project-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="input-field w-full" placeholder={t('create.projectPlaceholder')} required />
                   </div>
                   <div>
-                    <label htmlFor="template-username" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                      {t('create.username')}
+                    <label htmlFor="template-brand" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                      {t('create.brand')}
                     </label>
-                    <input id="template-username" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="input-field w-full" placeholder={DEFAULT_TEMPLATE_USERNAME} />
+                    <input id="template-brand" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="input-field w-full" placeholder={t('create.brandPlaceholder')} />
+                  </div>
+                  <div>
+                    <label htmlFor="project-singer" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                      {t('create.singer')}
+                    </label>
+                    <input id="project-singer" type="text" value={singer} onChange={(e) => setSinger(e.target.value)} className="input-field w-full" placeholder={t('create.singerPlaceholder')} />
+                  </div>
+                  <div>
+                    <label htmlFor="audio-file" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                      {t('create.audioFile')}
+                    </label>
+                    <input id="audio-file" type="file" accept="audio/*" className="file-input w-full" required />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="audio-file" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                    {t('create.audioFile')}
+                  <label htmlFor="manual-lyrics" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                    {t('create.manualLyrics')}
                   </label>
-                  <input id="audio-file" type="file" accept="audio/*" className="file-input w-full" required />
+                  <textarea
+                    id="manual-lyrics"
+                    value={lyrics}
+                    onChange={(e) => setLyrics(e.target.value)}
+                    className="input-field w-full"
+                    rows={4}
+                    placeholder={t('create.manualLyricsPlaceholder')}
+                    style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                  />
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button type="submit" disabled={uploading} className="btn-primary min-w-[140px]">
@@ -204,6 +241,13 @@ export default function Home() {
                 </div>
               ))}
             </div>
+          ) : loadError ? (
+            <div className="text-center py-16 rounded-xl border border-dashed" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+              <p className="text-sm mb-2" style={{ color: 'var(--color-error, #ef4444)' }}>{loadError}</p>
+              <button onClick={() => { setLoading(true); setLoadError(null); loadProjects(); }} className="btn-secondary text-sm">
+                重试
+              </button>
+            </div>
           ) : projects.length === 0 ? (
             <div className="text-center py-20 rounded-xl border border-dashed" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
               <div className="flex justify-center mb-3" style={{ color: 'var(--color-text-subtle)' }}>
@@ -231,7 +275,7 @@ export default function Home() {
                     <div>
                       <h3 className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>{p.title}</h3>
                       <p className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-                        {Math.round(p.durationMs / 1000)}s · {p.lines?.length ?? 0} {t('common.lines')}
+                        {p.singer ? `${p.singer} · ` : ''}{Math.round(p.durationMs / 1000)}s · {p.lines?.length ?? 0} {t('common.lines')}
                       </p>
                     </div>
                   </div>

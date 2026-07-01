@@ -176,6 +176,53 @@ export default function ProjectEditorPage({
               </div>
             )}
 
+            {/* ── Project Info: Brand + Singer ── */}
+            <div className="px-3 py-2 rounded-lg flex items-center gap-6 text-sm mb-3" style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('create.brand')}</label>
+                <input
+                  type="text"
+                  defaultValue={getTemplateUsername(project.template)}
+                  onBlur={async (e) => {
+                    const val = e.target.value.trim();
+                    if (!val || !id) return;
+                    const newTemplate = JSON.stringify({ username: val });
+                    try {
+                      await fetch(`/api/projects/${id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ template: newTemplate }),
+                      });
+                      reloadProject();
+                    } catch { /* ignore */ }
+                  }}
+                  className="input-field !py-1 !text-xs w-28"
+                  placeholder={t('create.brandPlaceholder')}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('create.singer')}</label>
+                <input
+                  type="text"
+                  defaultValue={project.singer ?? ''}
+                  onBlur={async (e) => {
+                    const val = e.target.value.trim();
+                    if (!id) return;
+                    try {
+                      await fetch(`/api/projects/${id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ singer: val || null }),
+                      });
+                      reloadProject();
+                    } catch { /* ignore */ }
+                  }}
+                  className="input-field !py-1 !text-xs w-28"
+                  placeholder={t('create.singerPlaceholder')}
+                />
+              </div>
+            </div>
+
             {/* ── Unified Workspace Panel ── */}
             <div className="workspace-panel overflow-hidden">
 
@@ -308,6 +355,7 @@ export default function ProjectEditorPage({
               durationMs={project.durationMs}
               title={project.title}
               username={getTemplateUsername(project.template)}
+              singer={project.singer ?? undefined}
               audioUrl={audioUrl}
             />
           </div>

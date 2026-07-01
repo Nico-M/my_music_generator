@@ -21,6 +21,10 @@ model Project {
   vocalEndMs   Int?
   // template config (JSON-serialized)
   template    String?
+  // singer/artist name — shown as subtitle in rendered video
+  singer      String?
+  // optional initial lyrics text entered during project creation
+  manualLyrics String?
   // full ASR result with word-level timestamps
   transcriptJson String?
 

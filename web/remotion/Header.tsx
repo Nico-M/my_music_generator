@@ -5,9 +5,10 @@ import React from 'react';
 interface HeaderProps {
   title: string;
   username?: string;
+  singer?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ title, username = '音乐' }) => {
+export const Header: React.FC<HeaderProps> = ({ title, username = '音乐', singer }) => {
   return (
     <div
       style={{
@@ -51,18 +52,53 @@ export const Header: React.FC<HeaderProps> = ({ title, username = '音乐' }) =>
           {username}
         </span>
       </div>
-      <h1
+      <div
         style={{
-          fontSize: 60,
-          fontWeight: 700,
-          color: '#f5f5f7',
-          margin: '84px 0 0 0',
-          lineHeight: 1.08,
-          letterSpacing: 0,
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 24,
+          marginTop: 84,
+          flexWrap: 'wrap',
         }}
       >
-        {title}
-      </h1>
+        <h1
+          style={{
+            fontSize: 60,
+            fontWeight: 700,
+            color: '#f5f5f7',
+            margin: 0,
+            lineHeight: 1.08,
+            letterSpacing: 0,
+          }}
+        >
+          {title}
+        </h1>
+        {singer && (
+          <>
+            <span
+              style={{
+                fontSize: 52,
+                fontWeight: 300,
+                color: '#7a7a7c',
+                lineHeight: 1.08,
+              }}
+            >
+              —
+            </span>
+            <span
+              style={{
+                fontSize: 48,
+                fontWeight: 500,
+                color: '#9e9ea0',
+                lineHeight: 1.08,
+                letterSpacing: 0.5,
+              }}
+            >
+              {singer}
+            </span>
+          </>
+        )}
+      </div>
     </div>
   );
 };

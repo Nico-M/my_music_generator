@@ -21,6 +21,7 @@ export interface LyricVideoProps extends Record<string, unknown> {
   audioSrc?: string;
   title?: string;
   username?: string;
+  singer?: string;
 }
 
 export const LyricVideo: React.FC<LyricVideoProps> = ({
@@ -29,6 +30,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
   audioSrc,
   title = 'Song Title',
   username,
+  singer,
 }) => {
   const frame = useCurrentFrame();
   const fps = 30;
@@ -69,7 +71,7 @@ export const LyricVideo: React.FC<LyricVideoProps> = ({
       {audioSrc && <Audio src={audioSrc} />}
 
       {/* 顶部信息按参考图固定呈现为抖音 + 歌曲标题。 */}
-      <Header title={title} username={username} />
+      <Header title={title} username={username} singer={singer} />
 
       {/* Scrolling checklist */}
       <ScrollingList lines={lines} currentIdx={currentIdx} />

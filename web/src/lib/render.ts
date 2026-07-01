@@ -22,6 +22,7 @@ export async function renderLyricVideo(
   audioPath: string,
   durationInFrames: number,
   template?: string | null,
+  singer?: string | null,
   renderBaseUrl?: string
 ): Promise<string> {
   const username = getTemplateUsername(template);
@@ -32,17 +33,20 @@ export async function renderLyricVideo(
     entryPoint: path.resolve(process.cwd(), 'remotion/index.ts'),
   });
 
+  const inputProps = {
+    lines,
+    title,
+    username,
+    singer: singer ?? undefined,
+    audioSrc,
+    durationMs: Math.round((durationInFrames / 30) * 1000),
+  };
+
   // Select the composition
   const composition = await selectComposition({
     serveUrl: bundlePath,
     id: 'LyricVideo',
-    inputProps: {
-      lines,
-      title,
-      username,
-      audioSrc,
-      durationMs: Math.round((durationInFrames / 30) * 1000),
-    },
+    inputProps,
   });
 
   // Render to MP4
@@ -52,13 +56,7 @@ export async function renderLyricVideo(
     serveUrl: bundlePath,
     codec: 'h264',
     outputLocation: outputPath,
-    inputProps: {
-      lines,
-      title,
-      username,
-      audioSrc,
-      durationMs: Math.round((durationInFrames / 30) * 1000),
-    },
+    inputProps,
   });
 
   return outputPath;
