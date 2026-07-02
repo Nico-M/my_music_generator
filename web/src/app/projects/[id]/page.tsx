@@ -229,7 +229,7 @@ export default function ProjectEditorPage({
                 />
               </div>
               <div className="flex items-center gap-2">
-                <label className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>Template</label>
+                <label className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('create.template')}</label>
                 <select
                   defaultValue={project.templateId ?? DEFAULT_TEMPLATE_ID}
                   onChange={async (e) => {
@@ -247,6 +247,9 @@ export default function ProjectEditorPage({
                 >
                   <option value="notes">Notes</option>
                   <option value="record">Record</option>
+                  <option value="neon-spectrum">Neon Spectrum</option>
+                  <option value="liquid-wave">Liquid Wave</option>
+                  <option value="lyric-poster">Lyric Poster</option>
                 </select>
               </div>
               <div className="flex items-center gap-2">

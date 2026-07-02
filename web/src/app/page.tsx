@@ -302,10 +302,10 @@ export default function Home() {
               {t('app.templates')}
             </h2>
             <span className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-              2
+              5
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
               <div className="relative aspect-video w-full">
                 <Image
@@ -320,7 +320,7 @@ export default function Home() {
                   {t('app.notesTemplate')}
                 </h3>
                 <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-                  output_example
+                  iPhone Notes style
                 </p>
               </div>
             </article>
@@ -339,7 +339,68 @@ export default function Home() {
                   {t('app.voiceMemoTemplate')}
                 </h3>
                 <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-                  output_example_2
+                  Voice Memo style
+                </p>
+              </div>
+            </article>
+
+            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+              <div className="relative aspect-video w-full bg-gradient-to-br from-purple-900 via-indigo-900 to-cyan-900 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-2 opacity-70">
+                  <div className="flex items-end gap-1 h-16">
+                    {[1,2,3,4,5,6,7,8].map(i => (
+                      <div key={i} className="w-2 bg-cyan-400 rounded-t" style={{ height: `${4 + Math.random() * 48}px`, opacity: 0.7 }} />
+                    ))}
+                  </div>
+                  <span className="text-cyan-300 text-2xl font-bold tracking-widest">NEON</span>
+                </div>
+              </div>
+              <div className="p-4">
+                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                  Neon Spectrum
+                </h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
+                  Nightclub stage with animated spectrum bars
+                </p>
+              </div>
+            </article>
+
+            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+              <div className="relative aspect-video w-full bg-gradient-to-br from-slate-900 via-teal-900 to-emerald-900 flex items-center justify-center">
+                <div className="relative w-24 h-24">
+                  <div className="absolute inset-0 border-2 border-teal-400/50 rounded-full animate-pulse" />
+                  <div className="absolute inset-4 border border-emerald-400/30 rounded-full" />
+                  <div className="absolute inset-8 border border-cyan-400/20 rounded-full" />
+                </div>
+              </div>
+              <div className="p-4">
+                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                  Liquid Wave
+                </h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
+                  Dreamy ripples and ethereal floating lyrics
+                </p>
+              </div>
+            </article>
+
+            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+              <div className="relative aspect-video w-full bg-gradient-to-br from-zinc-900 via-violet-900 to-indigo-900 flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-white/90 text-lg font-bold tracking-wide">L Y R I C</p>
+                  <p className="text-white/40 text-sm mt-1">P O S T E R</p>
+                  <div className="flex justify-center gap-1 mt-3">
+                    {[1,2,3,4,5,6,7,8,9,10].map(i => (
+                      <div key={i} className="w-0.5 bg-white/40 rounded" style={{ height: `${6 + Math.random() * 20}px` }} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="p-4">
+                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                  Lyric Poster
+                </h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
+                  Editorial poster with kinetic typography
                 </p>
               </div>
             </article>
