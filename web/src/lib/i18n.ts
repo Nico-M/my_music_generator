@@ -18,6 +18,11 @@ export const messages = {
       heroTitle2: '几分钟搞定',
       heroDesc: '上传音频，自动对齐歌词，微调时间线，导出精美歌词视频——无需编辑经验。',
       uploadCreate: '上传并创建',
+      templates: '模板',
+      notesTemplate: '笔记模板',
+      notesTemplateAlt: '笔记模板示例截图',
+      voiceMemoTemplate: '语音备忘录模板',
+      voiceMemoTemplateAlt: '语音备忘录模板示例截图',
     },
     create: {
       title: '上传音频创建项目',
@@ -113,6 +118,11 @@ export const messages = {
       heroTitle2: 'in minutes',
       heroDesc: 'Upload your audio, auto-sync lyrics, tweak the timeline, and render stunning lyric videos — no video editing experience needed.',
       uploadCreate: 'Upload & Create',
+      templates: 'Templates',
+      notesTemplate: 'Notes template',
+      notesTemplateAlt: 'Notes template preview image',
+      voiceMemoTemplate: 'Voice memo template',
+      voiceMemoTemplateAlt: 'Voice memo template preview image',
     },
     create: {
       title: 'Upload audio to create a project',

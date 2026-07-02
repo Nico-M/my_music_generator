@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { DEFAULT_CREATOR_NAME, DEFAULT_TEMPLATE_ID } from '@/lib/template';
 import HeroVisual from '@/components/HeroVisual';
 import LanguageToggle from '@/components/LanguageToggle';
@@ -293,6 +294,56 @@ export default function Home() {
               ))}
             </div>
           )}
+        </section>
+
+        <section className="mt-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+              {t('app.templates')}
+            </h2>
+            <span className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
+              2
+            </span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+              <div className="relative aspect-video w-full">
+                <Image
+                  src="/assets/templates/output_example.png"
+                  alt={t('app.notesTemplateAlt')}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="p-4">
+                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                  {t('app.notesTemplate')}
+                </h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
+                  output_example
+                </p>
+              </div>
+            </article>
+
+            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+              <div className="relative aspect-video w-full">
+                <Image
+                  src="/assets/templates/output_example_2.png"
+                  alt={t('app.voiceMemoTemplateAlt')}
+                  fill
+                  className="object-cover"
+                />
+              </div>
+              <div className="p-4">
+                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                  {t('app.voiceMemoTemplate')}
+                </h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
+                  output_example_2
+                </p>
+              </div>
+            </article>
+          </div>
         </section>
       </main>
     </div>
