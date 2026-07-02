@@ -6,7 +6,7 @@ import { DEFAULT_CREATOR_NAME, DEFAULT_TEMPLATE_ID } from '@/lib/template';
 import HeroVisual from '@/components/HeroVisual';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useI18n } from '@/components/LanguageProvider';
-import { Plus, Music2, Clock, FileText, Upload, LoaderCircle } from 'lucide-react';
+import { Plus, Music2, Upload, LoaderCircle } from '@/components/icons/IonIcons';
 
 interface ProjectSummary {
   id: string;

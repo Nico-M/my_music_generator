@@ -3,7 +3,7 @@
 import { useEditorStore } from '@/lib/store';
 import { useState, useCallback } from 'react';
 import { useI18n } from './LanguageProvider';
-import { Clock, Crosshair, Wand2, Save, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Clock, Crosshair, Wand2, Save, ChevronLeft, ChevronRight } from '@/components/icons/IonIcons';
 
 export default function TimelineList() {
   const { t } = useI18n();
