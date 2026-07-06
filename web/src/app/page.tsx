@@ -348,8 +348,8 @@ export default function Home() {
               <div className="relative aspect-video w-full bg-gradient-to-br from-purple-900 via-indigo-900 to-cyan-900 flex items-center justify-center">
                 <div className="flex flex-col items-center gap-2 opacity-70">
                   <div className="flex items-end gap-1 h-16">
-                    {[1,2,3,4,5,6,7,8].map(i => (
-                      <div key={i} className="w-2 bg-cyan-400 rounded-t" style={{ height: `${4 + Math.random() * 48}px`, opacity: 0.7 }} />
+                    {[22, 36, 14, 44, 31, 52, 27, 41].map((height, i) => (
+                      <div key={i} className="w-2 bg-cyan-400 rounded-t" style={{ height: `${height}px`, opacity: 0.7 }} />
                     ))}
                   </div>
                   <span className="text-cyan-300 text-2xl font-bold tracking-widest">NEON</span>
@@ -389,8 +389,8 @@ export default function Home() {
                   <p className="text-white/90 text-lg font-bold tracking-wide">L Y R I C</p>
                   <p className="text-white/40 text-sm mt-1">P O S T E R</p>
                   <div className="flex justify-center gap-1 mt-3">
-                    {[1,2,3,4,5,6,7,8,9,10].map(i => (
-                      <div key={i} className="w-0.5 bg-white/40 rounded" style={{ height: `${6 + Math.random() * 20}px` }} />
+                    {[18, 11, 24, 16, 22, 9, 14, 20, 13, 17].map((height, i) => (
+                      <div key={i} className="w-0.5 bg-white/40 rounded" style={{ height: `${height}px` }} />
                     ))}
                   </div>
                 </div>

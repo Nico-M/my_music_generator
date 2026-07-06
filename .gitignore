@@ -15,3 +15,4 @@ worker/.venv-py39-backup/
 
 # OS files
 .DS_Store
+.ace-tool/
