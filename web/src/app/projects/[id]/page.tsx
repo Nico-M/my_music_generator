@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useEditorStore, type Project } from '@/lib/store';
+import { useAiSettings } from '@/components/AiSettingsProvider';
 import { useJobs } from '@/lib/use-jobs';
 import LyricDraftEditor from '@/components/LyricDraftEditor';
 import TimelineList from '@/components/TimelineList';
@@ -31,7 +32,9 @@ export default function ProjectEditorPage({
 
   const [syncing, setSyncing] = useState<'assisted' | 'weighted' | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
-
+  const { settings: aiSettings, openSettings, isConfigured: isAiConfigured } = useAiSettings();
+  const [aiCorrecting, setAiCorrecting] = useState(false);
+  const aiCorrectedJobIds = useRef<Set<string>>(new Set());
   useEffect(() => {
     params.then((p) => setId(p.id));
   }, [params]);
@@ -54,26 +57,79 @@ export default function ProjectEditorPage({
       });
   }, [id, setProject]);
 
-  const reloadProject = async () => {
-    if (!id) return;
+  const reloadProject = async (): Promise<Project | null> => {
+    if (!id) return null;
     try {
       const res = await fetch(`/api/projects/${id}`);
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json() as Project;
         setProject(data);
+        return data;
       }
     } catch { /* ignore */ }
+    return null;
+  };
+
+  const correctLyricsWithAi = async (latestProject: Project | null) => {
+    if (!latestProject || latestProject.lines.length === 0) return;
+
+    setAiCorrecting(true);
+    try {
+      const res = await fetch('/api/ai/correct-lyrics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: aiSettings,
+          songTitle: latestProject.title,
+          singer: latestProject.singer,
+          lines: latestProject.lines.map((line) => line.text),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setStatusMsg(err.error || t('ai.correctFailed'));
+        return;
+      }
+
+      const data = await res.json() as { lines?: unknown };
+      if (!Array.isArray(data.lines)) {
+        setStatusMsg(t('ai.correctFailed'));
+        return;
+      }
+
+      // 识别完成后自动纠错；失败时保留 ASR 原始结果，不阻断后续编辑。
+      await useEditorStore.getState().saveLyrics(data.lines as string[]);
+      setStatusMsg(t('ai.corrected'));
+    } catch {
+      setStatusMsg(t('ai.correctFailed'));
+    } finally {
+      setAiCorrecting(false);
+    }
   };
 
   useEffect(() => {
     const doneJob = finishedJobs.find(
       j => j.status === 'done' && !reloadedJobIds.current.has(j.jobId)
     );
-    if (doneJob) {
-      reloadedJobIds.current.add(doneJob.jobId);
-      reloadProject();
-    }
-  }, [finishedJobs]);
+    if (!doneJob) return;
+
+    reloadedJobIds.current.add(doneJob.jobId);
+    const reloadAndMaybeCorrect = async () => {
+      const latestProject = await reloadProject();
+      if (
+        doneJob.type !== 'transcribe' ||
+        !isAiConfigured ||
+        aiCorrectedJobIds.current.has(doneJob.jobId)
+      ) {
+        return;
+      }
+
+      aiCorrectedJobIds.current.add(doneJob.jobId);
+      await correctLyricsWithAi(latestProject);
+    };
+
+    reloadAndMaybeCorrect();
+  }, [finishedJobs, isAiConfigured]);
 
   const isRenderActive = activeJobs.some(j => j.type === 'render');
   const hasLines = lines.length > 0;
@@ -129,6 +185,13 @@ export default function ProjectEditorPage({
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={openSettings}
+              className="btn-ghost !py-1.5 !px-2.5 !text-xs"
+              title={t('ai.settingsTitle')}
+            >
+              {t('ai.settings')}
+            </button>
             <LanguageToggle />
 
             {/* Status badge */}
@@ -198,9 +261,9 @@ export default function ProjectEditorPage({
             )}
 
             {/* Status message */}
-            {statusMsg && (
+            {(statusMsg || aiCorrecting) && (
               <div className="px-3 py-2 rounded-lg flex items-center gap-2 text-sm mb-3" style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
-                <span>{statusMsg}</span>
+                <span>{aiCorrecting ? t('ai.correcting') : statusMsg}</span>
                 <button onClick={() => setStatusMsg(null)} className="ml-auto shrink-0" style={{ color: 'var(--color-text-subtle)' }}>✕</button>
               </div>
             )}
