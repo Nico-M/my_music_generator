@@ -16,3 +16,8 @@ worker/.venv-py39-backup/
 # OS files
 .DS_Store
 .ace-tool/
+
+# Local AI tooling artifacts
+.claude/
+.codegraph/
+.codex/
