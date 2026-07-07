@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { DEFAULT_CREATOR_NAME, DEFAULT_TEMPLATE_ID } from '@/lib/template';
+import { getTemplateMetadata, templateOptions, type TemplateId } from '../../remotion/templates/metadata';
+import type { TemplateParameterDefinition } from '../../remotion/templates/types';
 import HeroVisual from '@/components/HeroVisual';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useI18n } from '@/components/LanguageProvider';
@@ -18,8 +20,86 @@ interface ProjectSummary {
   lines: { id: string }[];
 }
 
+type TemplateConfigDraft = Record<string, string | number | boolean>;
+
+function createDefaultConfigDraft(templateId: TemplateId): TemplateConfigDraft {
+  const metadata = getTemplateMetadata(templateId);
+  return Object.fromEntries(metadata.parameters.map((parameter) => [parameter.key, parameter.defaultValue])) as TemplateConfigDraft;
+}
+
+function buildTemplateConfigPayload(
+  parameters: readonly TemplateParameterDefinition<Record<string, unknown>>[],
+  draft: TemplateConfigDraft,
+): TemplateConfigDraft {
+  return Object.fromEntries(
+    parameters.map((parameter) => [parameter.key, draft[parameter.key] ?? parameter.defaultValue]),
+  ) as TemplateConfigDraft;
+}
+type TemplateThumbnailProps = {
+  templateId: TemplateId;
+  alt: string;
+  className?: string;
+};
+
+function TemplateThumbnail({ templateId, alt, className = 'aspect-video w-full' }: TemplateThumbnailProps) {
+  const frameClassName = `relative ${className} overflow-hidden`;
+  switch (templateId) {
+    case 'notes':
+      return (
+        <div className={frameClassName}>
+          <Image src="/assets/templates/output_example.png" alt={alt} fill className="object-cover" />
+        </div>
+      );
+    case 'record':
+      return (
+        <div className={frameClassName}>
+          <Image src="/assets/templates/output_example_2.png" alt={alt} fill className="object-cover" />
+        </div>
+      );
+    case 'neon-spectrum':
+      return (
+        <div className={frameClassName + ' bg-gradient-to-br from-purple-900 via-indigo-900 to-cyan-900 flex items-center justify-center'} role="img" aria-label={alt}>
+          <div className="flex flex-col items-center gap-2 opacity-70">
+            <div className="flex items-end gap-1 h-16">
+              {[22, 36, 14, 44, 31, 52, 27, 41].map((height, i) => (
+                <div key={i} className="w-2 bg-cyan-400 rounded-t" style={{ height: `${height}px`, opacity: 0.7 }} />
+              ))}
+            </div>
+            <span className="text-cyan-300 text-2xl font-bold tracking-widest">NEON</span>
+          </div>
+        </div>
+      );
+    case 'liquid-wave':
+      return (
+        <div className={frameClassName + ' bg-gradient-to-br from-slate-900 via-teal-900 to-emerald-900 flex items-center justify-center'} role="img" aria-label={alt}>
+          <div className="relative w-24 h-24">
+            <div className="absolute inset-0 border-2 border-teal-400/50 rounded-full animate-pulse" />
+            <div className="absolute inset-4 border border-emerald-400/30 rounded-full" />
+            <div className="absolute inset-8 border border-cyan-400/20 rounded-full" />
+          </div>
+        </div>
+      );
+    case 'lyric-poster':
+      return (
+        <div className={frameClassName + ' bg-gradient-to-br from-zinc-900 via-violet-900 to-indigo-900 flex items-center justify-center'} role="img" aria-label={alt}>
+          <div className="text-center">
+            <p className="text-white/90 text-lg font-bold tracking-wide">L Y R I C</p>
+            <p className="text-white/40 text-sm mt-1">P O S T E R</p>
+            <div className="flex justify-center gap-1 mt-3">
+              {[18, 11, 24, 16, 22, 9, 14, 20, 13, 17].map((height, i) => (
+                <div key={i} className="w-0.5 bg-white/40 rounded" style={{ height: `${height}px` }} />
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+  }
+  return null;
+}
+
+
 export default function Home() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -29,6 +109,8 @@ export default function Home() {
   const [singer, setSinger] = useState('');
   const [lyrics, setLyrics] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [templateId, setTemplateId] = useState<TemplateId>(DEFAULT_TEMPLATE_ID as TemplateId);
+  const [templateConfig, setTemplateConfig] = useState<TemplateConfigDraft>(() => createDefaultConfigDraft(DEFAULT_TEMPLATE_ID as TemplateId));
   const router = useRouter();
 
   useEffect(() => {
@@ -49,6 +131,18 @@ export default function Home() {
       setLoading(false);
     }
   }
+
+
+  const selectedTemplate = getTemplateMetadata(templateId);
+
+  const handleTemplateChange = (nextTemplateId: TemplateId) => {
+    setTemplateId(nextTemplateId);
+    setTemplateConfig(createDefaultConfigDraft(nextTemplateId));
+  };
+
+  const setTemplateParameter = (key: string, value: string | number | boolean) => {
+    setTemplateConfig((current) => ({ ...current, [key]: value }));
+  };
 
   const handleFileUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,8 +166,11 @@ export default function Home() {
           creatorName: creatorName.trim(),
           singer: singer.trim() || undefined,
           lyrics: lyrics.trim() || undefined,
-          templateId: DEFAULT_TEMPLATE_ID,
-          templateConfig: {},
+          templateId,
+          templateConfig: buildTemplateConfigPayload(
+            selectedTemplate.parameters as readonly TemplateParameterDefinition<Record<string, unknown>>[],
+            templateConfig,
+          ),
           audioPath,
           durationMs,
         }),
@@ -194,6 +291,109 @@ export default function Home() {
                     <input id="audio-file" type="file" accept="audio/*" className="file-input w-full" required />
                   </div>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-4 items-start">
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                      {t('create.template')}
+                    </label>
+                    <select
+                      value={templateId}
+                      onChange={(e) => handleTemplateChange(e.target.value as TemplateId)}
+                      className="input-field w-full"
+                    >
+                      {templateOptions.map((template) => (
+                        <option key={template.id} value={template.id}>{template.name}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
+                      {selectedTemplate.description[locale]}
+                    </p>
+                  </div>
+                  <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+                    <TemplateThumbnail
+                      templateId={templateId}
+                      alt={`${selectedTemplate.name} template preview`}
+                      className="aspect-video w-full"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {selectedTemplate.parameters.map((parameter) => {
+                    const paramDef = parameter as TemplateParameterDefinition<Record<string, unknown>>;
+                    const currentValue = templateConfig[paramDef.key] ?? paramDef.defaultValue;
+                    switch (paramDef.kind) {
+                      case 'boolean':
+                        return (
+                          <div key={paramDef.key} className="flex items-center gap-2">
+                            <input
+                              id={`param-${paramDef.key}`}
+                              type="checkbox"
+                              checked={Boolean(currentValue)}
+                              onChange={(e) => setTemplateParameter(paramDef.key, e.target.checked)}
+                              className="h-4 w-4 rounded"
+                              style={{ accentColor: 'var(--color-primary)' }}
+                            />
+                            <label htmlFor={`param-${paramDef.key}`} className="text-sm" style={{ color: 'var(--color-text)' }}>
+                              {paramDef.label}
+                            </label>
+                          </div>
+                        );
+                      case 'select':
+                        return (
+                          <div key={paramDef.key}>
+                            <label htmlFor={`param-${paramDef.key}`} className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                              {paramDef.label}
+                            </label>
+                            <select
+                              id={`param-${paramDef.key}`}
+                              value={String(currentValue)}
+                              onChange={(e) => setTemplateParameter(paramDef.key, e.target.value)}
+                              className="input-field w-full"
+                            >
+                              {paramDef.options.map((opt) => (
+                                <option key={opt.value} value={opt.value}>{opt.label}</option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      case 'number':
+                        return (
+                          <div key={paramDef.key}>
+                            <label htmlFor={`param-${paramDef.key}`} className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                              {paramDef.label}
+                            </label>
+                            <input
+                              id={`param-${paramDef.key}`}
+                              type="number"
+                              min={paramDef.min}
+                              max={paramDef.max}
+                              step={paramDef.step}
+                              value={Number(currentValue)}
+                              onChange={(e) => setTemplateParameter(paramDef.key, Number(e.target.value))}
+                              className="input-field w-full"
+                            />
+                          </div>
+                        );
+                      case 'color':
+                        return (
+                          <div key={paramDef.key}>
+                            <label htmlFor={`param-${paramDef.key}`} className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
+                              {paramDef.label}
+                            </label>
+                            <input
+                              id={`param-${paramDef.key}`}
+                              type="color"
+                              value={String(currentValue)}
+                              onChange={(e) => setTemplateParameter(paramDef.key, e.target.value)}
+                              className="input-field w-full h-9"
+                            />
+                          </div>
+                        );
+                      default:
+                        return null;
+                    }
+                  })}
+                </div>
                 <div>
                   <label htmlFor="manual-lyrics" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
                     {t('create.manualLyrics')}
@@ -307,14 +507,10 @@ export default function Home() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full">
-                <Image
-                  src="/assets/templates/output_example.png"
-                  alt={t('app.notesTemplateAlt')}
-                  fill
-                  className="object-cover"
-                />
-              </div>
+                    <TemplateThumbnail
+                      templateId="notes"
+                      alt={t('app.notesTemplateAlt')}
+                    />
               <div className="p-4">
                 <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                   {t('app.notesTemplate')}
@@ -326,14 +522,10 @@ export default function Home() {
             </article>
 
             <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full">
-                <Image
-                  src="/assets/templates/output_example_2.png"
-                  alt={t('app.voiceMemoTemplateAlt')}
-                  fill
-                  className="object-cover"
-                />
-              </div>
+                    <TemplateThumbnail
+                      templateId="record"
+                      alt={t('app.voiceMemoTemplateAlt')}
+                    />
               <div className="p-4">
                 <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                   {t('app.voiceMemoTemplate')}
@@ -345,16 +537,10 @@ export default function Home() {
             </article>
 
             <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full bg-gradient-to-br from-purple-900 via-indigo-900 to-cyan-900 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-2 opacity-70">
-                  <div className="flex items-end gap-1 h-16">
-                    {[22, 36, 14, 44, 31, 52, 27, 41].map((height, i) => (
-                      <div key={i} className="w-2 bg-cyan-400 rounded-t" style={{ height: `${height}px`, opacity: 0.7 }} />
-                    ))}
-                  </div>
-                  <span className="text-cyan-300 text-2xl font-bold tracking-widest">NEON</span>
-                </div>
-              </div>
+                    <TemplateThumbnail
+                      templateId="neon-spectrum"
+                      alt="Neon Spectrum template preview"
+                    />
               <div className="p-4">
                 <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                   Neon Spectrum
@@ -366,13 +552,10 @@ export default function Home() {
             </article>
 
             <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full bg-gradient-to-br from-slate-900 via-teal-900 to-emerald-900 flex items-center justify-center">
-                <div className="relative w-24 h-24">
-                  <div className="absolute inset-0 border-2 border-teal-400/50 rounded-full animate-pulse" />
-                  <div className="absolute inset-4 border border-emerald-400/30 rounded-full" />
-                  <div className="absolute inset-8 border border-cyan-400/20 rounded-full" />
-                </div>
-              </div>
+                    <TemplateThumbnail
+                      templateId="liquid-wave"
+                      alt="Liquid Wave template preview"
+                    />
               <div className="p-4">
                 <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                   Liquid Wave
@@ -384,17 +567,10 @@ export default function Home() {
             </article>
 
             <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full bg-gradient-to-br from-zinc-900 via-violet-900 to-indigo-900 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-white/90 text-lg font-bold tracking-wide">L Y R I C</p>
-                  <p className="text-white/40 text-sm mt-1">P O S T E R</p>
-                  <div className="flex justify-center gap-1 mt-3">
-                    {[18, 11, 24, 16, 22, 9, 14, 20, 13, 17].map((height, i) => (
-                      <div key={i} className="w-0.5 bg-white/40 rounded" style={{ height: `${height}px` }} />
-                    ))}
-                  </div>
-                </div>
-              </div>
+                    <TemplateThumbnail
+                      templateId="lyric-poster"
+                      alt="Lyric Poster template preview"
+                    />
               <div className="p-4">
                 <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
                   Lyric Poster

@@ -1,3 +1,5 @@
+import type { TemplateParameterDefinition } from '../types';
+
 export interface LyricPosterConfig {
   layout: 'center-emphasis' | 'top-title' | 'bottom-wave';
   backgroundStyle: 'gradient' | 'cover-image' | 'dark-solid';
@@ -37,3 +39,11 @@ export function normalizePosterConfig(input: unknown): LyricPosterConfig {
       ? raw.accentColor : posterDefaultConfig.accentColor,
   };
 }
+
+export const posterParameterDefinitions: readonly TemplateParameterDefinition<LyricPosterConfig>[] = [
+  { key: 'layout', kind: 'select', label: 'Layout', defaultValue: 'center-emphasis', options: [{ value: 'center-emphasis', label: 'Center emphasis' }, { value: 'top-title', label: 'Top title' }, { value: 'bottom-wave', label: 'Bottom wave' }] },
+  { key: 'backgroundStyle', kind: 'select', label: 'Background style', defaultValue: 'gradient', options: [{ value: 'gradient', label: 'Gradient' }, { value: 'cover-image', label: 'Abstract cover' }, { value: 'dark-solid', label: 'Dark solid' }] },
+  { key: 'typographyScale', kind: 'select', label: 'Typography scale', defaultValue: 'large', options: [{ value: 'normal', label: 'Normal' }, { value: 'large', label: 'Large' }, { value: 'xlarge', label: 'Extra large' }] },
+  { key: 'showWaveform', kind: 'boolean', label: 'Show waveform', defaultValue: true },
+  { key: 'accentColor', kind: 'color', label: 'Accent color', defaultValue: '#FFFFFF' },
+] as const;

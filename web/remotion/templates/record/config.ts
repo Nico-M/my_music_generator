@@ -1,3 +1,5 @@
+import type { TemplateParameterDefinition } from '../types';
+
 export interface RecordTemplateConfig {
   waveformStyle: 'bars' | 'wave';
 }
@@ -20,3 +22,7 @@ export function normalizeRecordConfig(input: unknown): RecordTemplateConfig {
         : recordDefaultConfig.waveformStyle,
   };
 }
+
+export const recordParameterDefinitions: readonly TemplateParameterDefinition<RecordTemplateConfig>[] = [
+  { key: 'waveformStyle', kind: 'select', label: 'Waveform style', defaultValue: 'bars', options: [{ value: 'bars', label: 'Bars' }, { value: 'wave', label: 'Wave' }] },
+] as const;

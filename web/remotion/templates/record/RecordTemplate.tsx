@@ -57,6 +57,20 @@ function VoiceMemoWaveformIcon() {
   );
 }
 
+function VoiceMemoWaveLine() {
+  return (
+    <svg viewBox="0 0 512 160" width={96} height={72} fill="none" aria-hidden="true">
+      <polyline
+        points="16,82 72,54 128,96 184,38 240,82 296,118 352,58 408,92 496,70"
+        stroke="#0A84FF"
+        strokeWidth={24}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 function formatSeconds(totalMs: number): string {
   const safeMs = Math.max(0, totalMs);
   const totalSeconds = Math.floor(safeMs / 1000);
@@ -92,7 +106,7 @@ const iconButtonStyle: React.CSSProperties = {
 
 export const RecordTemplate: React.FC<TemplateRenderProps<RecordTemplateConfig>> = ({
   data,
-  config: _config,
+  config,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -291,7 +305,7 @@ export const RecordTemplate: React.FC<TemplateRenderProps<RecordTemplateConfig>>
           }}
         >
           <div style={{ opacity: currentLine ? 1 : 0.55 }}>
-            <VoiceMemoWaveformIcon />
+            {config.waveformStyle === 'wave' ? <VoiceMemoWaveLine /> : <VoiceMemoWaveformIcon />}
           </div>
         </div>
         <div

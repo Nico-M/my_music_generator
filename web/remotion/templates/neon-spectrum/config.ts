@@ -1,3 +1,5 @@
+import type { TemplateParameterDefinition } from '../types';
+
 export interface NeonSpectrumConfig {
   colorTheme: 'cyan-magenta' | 'purple-pink' | 'blue-green' | 'red-gold';
   barCount: number;
@@ -46,4 +48,12 @@ export function getThemeColors(theme: NeonSpectrumConfig['colorTheme']) {
     case 'red-gold':
       return { primary: '#FF3D00', secondary: '#FFB300', tertiary: '#FF6F00', bg: '#100800' };
   }
+
 }
+export const neonParameterDefinitions: readonly TemplateParameterDefinition<NeonSpectrumConfig>[] = [
+  { key: 'colorTheme', kind: 'select', label: 'Color theme', defaultValue: 'cyan-magenta', options: [{ value: 'cyan-magenta', label: 'Cyan + Magenta' }, { value: 'purple-pink', label: 'Purple + Pink' }, { value: 'blue-green', label: 'Blue + Green' }, { value: 'red-gold', label: 'Red + Gold' }] },
+  { key: 'barCount', kind: 'number', label: 'Bar count', defaultValue: 32, min: 8, max: 64, step: 1 },
+  { key: 'glowIntensity', kind: 'select', label: 'Glow intensity', defaultValue: 'high', options: [{ value: 'low', label: 'Low' }, { value: 'medium', label: 'Medium' }, { value: 'high', label: 'High' }] },
+  { key: 'showParticles', kind: 'boolean', label: 'Show particles', defaultValue: true },
+  { key: 'showScanLines', kind: 'boolean', label: 'Show scan lines', defaultValue: true },
+] as const;

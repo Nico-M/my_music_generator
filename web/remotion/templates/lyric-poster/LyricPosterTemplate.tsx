@@ -49,6 +49,11 @@ function getBackgroundGradient(frame: number, config: LyricPosterConfig): React.
   if (config.backgroundStyle === 'dark-solid') {
     return { backgroundColor: '#0A0A0A' };
   }
+  if (config.backgroundStyle === 'cover-image') {
+    return {
+      background: `radial-gradient(circle at 25% 20%, ${config.accentColor}55, transparent 28%), radial-gradient(circle at 75% 70%, rgba(255,255,255,0.14), transparent 24%), linear-gradient(135deg, #05050A 0%, #1A0A2E 55%, #05050A 100%)`,
+    };
+  }
   // Animated gradient
   const shift = Math.sin(frame * 0.002) * 10;
   const shift2 = Math.cos(frame * 0.003) * 10;

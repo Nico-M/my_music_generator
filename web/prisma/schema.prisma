@@ -46,7 +46,7 @@ model LyricLine {
   text      String
   startMs   Int?
   endMs     Int?
-  source    String  @default("manual") // manual | transcribed | transcribed-aligned | weighted | aligned | lrc
+  source    String  @default("manual") // manual | transcribed | transcribed-aligned | aligned | lrc
   confidence Float?
 
   projectId String

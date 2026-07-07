@@ -3,6 +3,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { DEFAULT_TEMPLATE_ID } from '@/lib/template';
+import { getTemplateMetadata } from '../../../../../remotion/templates/metadata';
 
 export async function GET(
   req: NextRequest,
@@ -33,8 +35,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
     const body = await req.json();
+    const { id } = await params;
+
+    if (Object.prototype.hasOwnProperty.call(body, 'templateId')) {
+      return NextResponse.json({ error: 'templateId is fixed at project creation' }, { status: 400 });
+    }
 
     // Only allow updating specific fields
     const allowedFields = [
@@ -44,7 +50,6 @@ export async function PATCH(
       'template',
       'singer',
       'creatorName',
-      'templateId',
       'templateConfig',
     ];
     const data: Record<string, unknown> = {};
@@ -55,9 +60,33 @@ export async function PATCH(
           if (value === null) {
             data[key] = null;
           } else if (typeof value === 'string') {
-            data[key] = value;
+            // Parse string JSON, normalize through template metadata
+            let parsed: unknown;
+            try {
+              parsed = JSON.parse(value);
+            } catch {
+              // Fall through to default normalization
+            }
+            const existingProject = await prisma.project.findUnique({
+              where: { id },
+              select: { templateId: true },
+            });
+            if (!existingProject) {
+              return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+            }
+            const templateMetadata = getTemplateMetadata(existingProject.templateId ?? DEFAULT_TEMPLATE_ID);
+            const configObject = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+            data[key] = JSON.stringify(templateMetadata.normalizeConfig(configObject));
           } else if (typeof value === 'object' && value && !Array.isArray(value)) {
-            data[key] = JSON.stringify(value);
+            const existingProject = await prisma.project.findUnique({
+              where: { id },
+              select: { templateId: true },
+            });
+            if (!existingProject) {
+              return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+            }
+            const templateMetadata = getTemplateMetadata(existingProject.templateId ?? DEFAULT_TEMPLATE_ID);
+            data[key] = JSON.stringify(templateMetadata.normalizeConfig(value));
           }
           continue;
         }
@@ -74,5 +103,30 @@ export async function PATCH(
   } catch (err) {
     console.error('Update project error:', err);
     return NextResponse.json({ error: 'Failed to update project' }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    const project = await prisma.project.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!project) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    await prisma.project.delete({ where: { id } });
+
+    return new NextResponse(null, { status: 204 });
+  } catch (err) {
+    console.error('Delete project error:', err);
+    return NextResponse.json({ error: 'Failed to delete project' }, { status: 500 });
   }
 }

@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { DEFAULT_CREATOR_NAME, DEFAULT_TEMPLATE_ID } from '@/lib/template';
+import { isTemplateId, getTemplateMetadata } from '../../../../remotion/templates/metadata';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,6 +24,15 @@ export async function POST(req: NextRequest) {
     if (!title || !audioPath) {
       return NextResponse.json({ error: 'title and audioPath are required' }, { status: 400 });
     }
+    // Validate and normalize templateId
+    const selectedTemplateId = typeof templateId === 'string' && templateId.trim()
+      ? templateId.trim()
+      : DEFAULT_TEMPLATE_ID;
+    if (!isTemplateId(selectedTemplateId)) {
+      return NextResponse.json({ error: 'Invalid templateId' }, { status: 400 });
+    }
+    const selectedTemplate = getTemplateMetadata(selectedTemplateId);
+    const normalizedTemplateConfig = selectedTemplate.normalizeConfig(templateConfig);
 
     const project = await prisma.project.create({
       data: {
@@ -35,11 +45,8 @@ export async function POST(req: NextRequest) {
             : typeof username === 'string' && username.trim()
               ? username.trim()
               : DEFAULT_CREATOR_NAME,
-        templateId: typeof templateId === 'string' && templateId.trim() ? templateId.trim() : DEFAULT_TEMPLATE_ID,
-        templateConfig:
-          templateConfig && typeof templateConfig === 'object' && !Array.isArray(templateConfig)
-            ? JSON.stringify(templateConfig)
-            : null,
+        templateId: selectedTemplateId,
+        templateConfig: JSON.stringify(normalizedTemplateConfig),
         singer: typeof singer === 'string' && singer.trim() ? singer.trim() : null,
         manualLyrics: typeof lyrics === 'string' && lyrics.trim() ? lyrics.trim() : null,
       },

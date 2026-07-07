@@ -1,6 +1,7 @@
 export const DEFAULT_CREATOR_NAME = '音乐';
 export const DEFAULT_TEMPLATE_ID = 'notes';
 export const FPS = 30;
+import { isTemplateId } from '../../remotion/templates/metadata';
 
 export interface BaseLyricLine {
   index: number;
@@ -88,7 +89,10 @@ export function buildRenderInput(args: BuildRenderInputArgs): RenderInput {
 
 function normalizeTemplateId(templateId: string | null | undefined): string {
   const value = normalizeNonEmptyString(templateId);
-  return value ?? DEFAULT_TEMPLATE_ID;
+  if (value && isTemplateId(value)) {
+    return value;
+  }
+  return DEFAULT_TEMPLATE_ID;
 }
 
 function parseTemplateConfig(templateConfig: string | null | undefined): Record<string, unknown> {

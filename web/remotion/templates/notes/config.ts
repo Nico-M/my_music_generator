@@ -1,3 +1,5 @@
+import type { TemplateParameterDefinition } from '../types';
+
 export interface NotesTemplateConfig {
   showCheckbox: boolean;
 }
@@ -16,3 +18,7 @@ export function normalizeNotesConfig(input: unknown): NotesTemplateConfig {
     showCheckbox: typeof raw.showCheckbox === 'boolean' ? raw.showCheckbox : notesDefaultConfig.showCheckbox,
   };
 }
+
+export const notesParameterDefinitions: readonly TemplateParameterDefinition<NotesTemplateConfig>[] = [
+  { key: 'showCheckbox', kind: 'boolean', label: 'Show checkbox', defaultValue: true },
+] as const;

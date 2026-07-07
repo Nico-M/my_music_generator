@@ -1,3 +1,5 @@
+import type { TemplateParameterDefinition } from '../types';
+
 export interface LiquidWaveConfig {
   colorScheme: 'ocean' | 'sunset' | 'aurora' | 'mono';
   rippleCount: number;
@@ -49,4 +51,12 @@ export function getLiquidColors(scheme: LiquidWaveConfig['colorScheme']) {
     case 'mono':
       return { base: '#0A0A0A', accent1: '#333333', accent2: '#666666', accent3: '#999999' };
   }
+
 }
+export const liquidParameterDefinitions: readonly TemplateParameterDefinition<LiquidWaveConfig>[] = [
+  { key: 'colorScheme', kind: 'select', label: 'Color scheme', defaultValue: 'ocean', options: [{ value: 'ocean', label: 'Ocean' }, { value: 'sunset', label: 'Sunset' }, { value: 'aurora', label: 'Aurora' }, { value: 'mono', label: 'Mono' }] },
+  { key: 'rippleCount', kind: 'number', label: 'Ripple count', defaultValue: 4, min: 2, max: 8, step: 1 },
+  { key: 'waveSpeed', kind: 'select', label: 'Wave speed', defaultValue: 'medium', options: [{ value: 'slow', label: 'Slow' }, { value: 'medium', label: 'Medium' }, { value: 'fast', label: 'Fast' }] },
+  { key: 'showParticles', kind: 'boolean', label: 'Show particles', defaultValue: true },
+  { key: 'blurAmount', kind: 'select', label: 'Blur amount', defaultValue: 'medium', options: [{ value: 'soft', label: 'Soft' }, { value: 'medium', label: 'Medium' }, { value: 'strong', label: 'Strong' }] },
+] as const;

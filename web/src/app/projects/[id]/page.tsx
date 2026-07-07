@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useEditorStore, type Project } from '@/lib/store';
 import { useAiSettings } from '@/components/AiSettingsProvider';
 import { useJobs } from '@/lib/use-jobs';
@@ -11,6 +12,7 @@ import JobStatusBar from '@/components/JobStatusBar';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useI18n } from '@/components/LanguageProvider';
 import { DEFAULT_TEMPLATE_ID, resolveCreatorName } from '@/lib/template';
+import { getTemplateMetadata } from '../../../../remotion/templates/metadata';
 import { ArrowLeft, Clapperboard, FileText, Timer, LoaderCircle, CheckCircle2 } from '@/components/icons/IonIcons';
 
 export default function ProjectEditorPage({
@@ -19,9 +21,11 @@ export default function ProjectEditorPage({
   params: Promise<{ id: string }>;
 }) {
   const { t } = useI18n();
+  const router = useRouter();
   const [id, setId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [activeTab, setActiveTab] = useState<'lyrics' | 'timeline'>('lyrics');
 
   const project = useEditorStore((s) => s.project);
@@ -30,7 +34,7 @@ export default function ProjectEditorPage({
   const { activeJobs, finishedJobs, track, dismiss } = useJobs();
   const reloadedJobIds = useRef<Set<string>>(new Set());
 
-  const [syncing, setSyncing] = useState<'assisted' | 'weighted' | null>(null);
+  const [syncing, setSyncing] = useState<'assisted' | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const { settings: aiSettings, openSettings, isConfigured: isAiConfigured } = useAiSettings();
   const [aiCorrecting, setAiCorrecting] = useState(false);
@@ -140,6 +144,21 @@ export default function ProjectEditorPage({
   const showRenderButtons = !!doneRenderJob && !isRenderActive;
   const downloadUrl = id ? `/api/files/${id}/download` : '#';
   const previewUrl = id ? `/api/files/${id}/preview` : '#';
+  async function handleDeleteProject() {
+    if (!id || !project) return;
+    if (!window.confirm(t('app.deleteProjectConfirm', { title: project.title }))) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      router.replace('/');
+    } catch (err) {
+      console.error('Failed to delete project:', err);
+      alert(t('app.deleteProjectFailed'));
+      setDeleting(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -159,8 +178,8 @@ export default function ProjectEditorPage({
       </div>
     );
   }
-
   const creatorName = resolveCreatorName(project.creatorName, project.template);
+  const templateName = getTemplateMetadata(project.templateId).name;
 
   return (
     <div className="editor-shell flex flex-col lg:flex-row h-screen">
@@ -193,6 +212,16 @@ export default function ProjectEditorPage({
               {t('ai.settings')}
             </button>
             <LanguageToggle />
+            <button
+              type="button"
+              onClick={() => { void handleDeleteProject(); }}
+              disabled={deleting}
+              className="btn-ghost !py-1.5 !px-2.5 !text-xs"
+              style={{ color: 'var(--color-danger)' }}
+              title={t('app.deleteProject')}
+            >
+              {deleting ? '...' : t('app.deleteProject')}
+            </button>
 
             {/* Status badge */}
             {hasLines ? (
@@ -293,27 +322,9 @@ export default function ProjectEditorPage({
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('create.template')}</label>
-                <select
-                  defaultValue={project.templateId ?? DEFAULT_TEMPLATE_ID}
-                  onChange={async (e) => {
-                    if (!id) return;
-                    try {
-                      await fetch(`/api/projects/${id}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ templateId: e.target.value }),
-                      });
-                      reloadProject();
-                    } catch { /* ignore */ }
-                  }}
-                  className="input-field !py-1 !text-xs w-28"
-                >
-                  <option value="notes">Notes</option>
-                  <option value="record">Record</option>
-                  <option value="neon-spectrum">Neon Spectrum</option>
-                  <option value="liquid-wave">Liquid Wave</option>
-                  <option value="lyric-poster">Lyric Poster</option>
-                </select>
+                <span className="text-xs px-2 py-1 rounded-lg" style={{ color: 'var(--color-text)', background: 'var(--color-surface)' }}>
+                  {templateName}
+                </span>
               </div>
               <div className="flex items-center gap-2">
                 <label className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>{t('create.singer')}</label>
@@ -393,23 +404,6 @@ export default function ProjectEditorPage({
                       title="Python alignment: pypinyin phonetic matching"
                     >
                       {t('editor.align')}
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!id) return;
-                        setSyncing('weighted');
-                        try {
-                          await fetch(`/api/projects/${id}/timeline/weighted`, { method: 'POST' });
-                          await reloadProject();
-                          setStatusMsg(t('editor.weightedResult'));
-                        } catch { alert('Weighted failed'); }
-                        finally { setSyncing(null); }
-                      }}
-                      disabled={syncing === 'weighted'}
-                      className="btn-ghost text-xs"
-                      title="Weighted layout: distribute time by character count"
-                    >
-                      {syncing === 'weighted' ? '...' : t('editor.weighted')}
                     </button>
                   </div>
                 </div>
