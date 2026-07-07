@@ -34,35 +34,29 @@ export function AiSettingsDialog() {
   const [useCustomModelInput, setUseCustomModelInput] = useState(false);
 
   const dialogRef = useRef<HTMLDivElement>(null);
+  const wasSettingsOpenRef = useRef(false);
 
-  // Sync form with settings when dialog opens
+  // Sync form with settings only when the dialog transitions from closed to
+  // open. Re-running this effect on every `availableModels` change would
+  // clobber any unsaved Base URL/API key edits the moment the user fetches
+  // models or runs the connection test.
   useEffect(() => {
-    if (isSettingsOpen) {
+    const justOpened = isSettingsOpen && !wasSettingsOpenRef.current;
+    if (justOpened) {
       setForm({ ...settings });
       setError(null);
       setTestState('idle');
       setTestError(null);
+      setTestModelCount(null);
       setShowKey(false);
-      // Decide initial custom-input mode on open:
-      //   - no saved model → input is the only sensible control
-      //   - saved model exists but is not in the cached list → keep select, the
-      //     "X (自定义)" option will surface the saved value as the default
-      //   - saved model exists and IS in the list → use the dropdown
-      const hasList = Array.isArray(availableModels) && availableModels.length > 0;
-      const saved = settings.model;
-      if (saved === '') {
-        setUseCustomModelInput(true);
-      } else if (hasList && availableModels.includes(saved)) {
-        setUseCustomModelInput(false);
-      } else {
-        setUseCustomModelInput(false);
-      }
+      // Initial custom-model mode from saved settings and current cached list.
+      // For non-empty saved models, both the "saved model missing from list"
+      // and "saved model present in list" branches end in `false`, so we
+      // don't need to inspect `availableModels` here.
+      setUseCustomModelInput(settings.model === '');
     }
-    setTestState('idle');
-    setTestError(null);
-    setTestModelCount(null);
-
-  }, [isSettingsOpen, settings, availableModels]);
+    wasSettingsOpenRef.current = isSettingsOpen;
+  }, [isSettingsOpen, settings]);
   // Esc key closes
   useEffect(() => {
     if (!isSettingsOpen) return;
