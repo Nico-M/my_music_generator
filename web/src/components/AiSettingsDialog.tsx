@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAiSettings } from './AiSettingsProvider';
-import { DEFAULT_AI_SETTINGS, type AiSettings, normalizeAiBaseUrl } from '@/lib/ai-settings';
+import { DEFAULT_AI_SETTINGS, type AiSettings, normalizeAiBaseUrl, getProviderKey } from '@/lib/ai-settings';
 import { useI18n } from './LanguageProvider';
 import { X } from './icons/IonIcons';
 
@@ -83,12 +83,19 @@ export function AiSettingsDialog() {
   // When the user edits baseUrl/apiKey after a successful fetch, the cached list
   // may be stale, so clear it to avoid offering models from the previous provider.
   // Also exit custom-input mode since the saved model probably belongs to the old provider.
+  //
+  // The key is built from the *raw trimmed* inputs, never from normalizeAiBaseUrl:
+  // normalization collapses an empty field to the OpenAI default, which made a
+  // field the user was mid-way through retyping look like a provider switch and
+  // wiped the form on every keystroke. An incomplete pair instead yields `null`,
+  // which is not comparable to a fetched key and therefore never resets.
   const lastFetchKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!isSettingsOpen) return;
-    const currentKey = `${normalizeAiBaseUrl(form.baseUrl)}::${form.apiKey}`;
+    const currentKey = getProviderKey(form.baseUrl, form.apiKey);
     if (
       lastFetchKeyRef.current !== null &&
+      currentKey !== null &&
       lastFetchKeyRef.current !== currentKey
     ) {
       setAvailableModels(null);
@@ -154,7 +161,7 @@ export function AiSettingsDialog() {
         // model is still absent from the new list, the "select missing model
         // as custom" branch in the JSX will surface it.
         if (models.length > 0) setUseCustomModelInput(false);
-        lastFetchKeyRef.current = `${normalizeAiBaseUrl(baseUrl)}::${apiKey}`;
+        lastFetchKeyRef.current = getProviderKey(baseUrl, apiKey);
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') return;
         setAvailableModels([]);
@@ -201,7 +208,7 @@ export function AiSettingsDialog() {
         setAvailableModels(models);
         setModelsError(null);
         if (models.length > 0) setUseCustomModelInput(false);
-        lastFetchKeyRef.current = `${normalizeAiBaseUrl(form.baseUrl)}::${form.apiKey}`;
+        lastFetchKeyRef.current = getProviderKey(form.baseUrl, form.apiKey);
       } else {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
         setTestState('error');

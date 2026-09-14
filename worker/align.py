@@ -10,10 +10,10 @@ How it works:
 5. Low-confidence lines get weighted fallback from remaining audio duration
 6. Write aligned results to LyricLine (source="aligned")
 
-对比 JS 端 assisted：
-- pypinyin 处理中文字音转换：ASR 可能写错字但拼音是对的
-- rapidfuzz 模糊匹配更强
-- 利用整个词序列而非滑窗，全局匹配更稳
+这条路径是远端对齐服务不可用时的降级实现（未配置 REMOTE_ALIGN_URL）。
+它自身不做 ASR，复用 Project.transcriptJson 的 word 级时间戳，因此必须先跑过一次识别歌词。
+与远端 worker/align.py 同源：pypinyin 处理中文字音转换（ASR 可能写错字但拼音是对的），
+rapidfuzz 在整个词序列上滑窗做全局匹配。
 """
 
 import json

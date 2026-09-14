@@ -4,6 +4,9 @@
 // service (Demucs + faster-whisper on the server).  Otherwise creates a local
 // queued Job for the local Python worker to pick up.
 //
+// Prerequisite: the project must have lyrics.  A prior 识别歌词 run is only
+// required when falling back to the local worker, which has no ASR of its own.
+//
 // Remote flow:
 //   1. POST  → upload audio, returns { jobId, remoteJobId }
 //   2. Frontend polls GET /api/jobs/{jobId} every 2 s
@@ -27,7 +30,7 @@ export async function POST(
   try {
     const { id } = await params;
 
-    // Verify project exists, has lines and transcript
+    // Verify project exists and has lyrics to align
     const project = await prisma.project.findUnique({
       where: { id },
       include: { lines: { orderBy: { index: 'asc' } } },
@@ -37,15 +40,19 @@ export async function POST(
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    if (!project.transcriptJson) {
-      return NextResponse.json(
-        { error: '请先运行识别歌词 (Run ASR transcription first)' },
-        { status: 400 },
-      );
-    }
-
     if (project.lines.length === 0) {
       return NextResponse.json({ error: 'No lyrics to align' }, { status: 400 });
+    }
+
+    // The remote service runs its own Demucs + ASR pipeline and only ever
+    // receives audio + lyrics, so a local transcript is not a prerequisite.
+    // The local worker path reuses `transcriptJson` word timestamps, so it
+    // still requires a prior 识别歌词 run.
+    if (!isRemoteAlignEnabled() && !project.transcriptJson) {
+      return NextResponse.json(
+        { error: '本地对齐需要词级时间戳，请先运行识别歌词 (Local align requires word timestamps: run ASR transcription first)' },
+        { status: 400 },
+      );
     }
 
     // -----------------------------------------------------------------------

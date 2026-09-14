@@ -43,7 +43,7 @@ touch docker-compose.yml
 
 `web/prisma/schema.prisma` — 直接复制 DESIGN.md §3 的三个模型：
 - `Project` — 含 `transcriptJson Json?`
-- `LyricLine` — source 枚举 `manual | transcribed | transcribed-aligned | weighted | aligned | lrc`
+- `LyricLine` — source 枚举 `manual | transcribed | transcribed-aligned | weighted | aligned | lrc`（`transcribed-aligned` 仅为历史数据，现行代码不再产出，见 DESIGN §5.2）
 - `Job` — type 含 `transcribe | align | render`
 
 ```bash
@@ -162,7 +162,7 @@ interface AudioPlayerProps {
 │ 用户粘贴歌词        │ → manual                            │
 │ transcribe 写入     │ → transcribed                       │
 │ 用户编辑某行文本    │ transcribed → manual（关键！）       │
-│ assisted 生成时间线 │ → transcribed-aligned               │
+│ 精确对齐全量写回    │ → aligned（处理所有行）             │
 │ weighted 粗排       │ → weighted                          │
 │ LRC 导入            │ → lrc                               │
 │ 用户手动微调时间    │ 保留原 source（只改 startMs/endMs）  │
@@ -171,7 +171,7 @@ interface AudioPlayerProps {
 
 **关键规则**：`transcribed` 行只由 ASR 生成。一旦用户碰过文本（哪怕改一个字），该行变为 `manual`。这保证了：
 - 下次重跑 transcribe 不会误删用户改过的行（`DELETE WHERE source='transcribed'`）
-- assisted 可以直接处理**所有行**（不挑 source），因为用户没改过的 transcribed 行也需要时间线
+- 对齐可以直接处理**所有行**（不挑 source），因为用户没改过的 transcribed 行也需要时间线
 
 ```tsx
 interface LyricDraftEditorProps {
@@ -521,7 +521,7 @@ def run_transcribe(project_id: str, db_path: str, uploads_dir: str):
 
     # 4. 写回 LyricLine (source="transcribed")
     #    ⚠️ index 是 SQLite 保留字，必须加双引号
-    #    ⚠️ 仅删旧的 transcribed 行，不碰 manual/transcribed-aligned/weighted 行
+    #    ⚠️ 仅删旧的 transcribed 行，不碰 manual/weighted/aligned 行
     conn.execute('DELETE FROM LyricLine WHERE "projectId"=? AND "source"=\'transcribed\'', (project_id,))
     for idx, seg in enumerate(segment_texts):
         conn.execute(
@@ -554,95 +554,95 @@ def run_transcribe(project_id: str, db_path: str, uploads_dir: str):
 
 ---
 
-## Phase 7：transcribe-assisted 主路径
+## Phase 7：声学对齐（主路径）
 
-**文件**：`web/lib/assisted-layout.ts`
+对齐拆成两条可互换的实现，由 `REMOTE_ALIGN_URL` 是否配置决定走哪条。前端是同一个「精确对齐」入口。
 
-```ts
-interface WordTimestamp {
-  word: string;
-  start: number;  // seconds
-  end: number;    // seconds
-}
+### 7.1 远端对齐（推荐）
 
-interface Segment {
-  start: number;
-  end: number;
-  text: string;
-}
+**文件**：`web/lib/remote-align.ts`（客户端 + 质量门）、`web/app/api/projects/[id]/timeline/align/route.ts`（入口）
 
-interface TranscriptData {
-  segments: Segment[];
-  words: WordTimestamp[];
-}
+远端是一个独立服务（FastAPI），自带完整流水线：
 
-/**
- * 把用户确认后的歌词行，模糊匹配到 ASR 词级时间戳上
- */
-export function assistedLayout(
-  userLines: { index: number; text: string }[],
-  transcriptData: TranscriptData
-): { index: number; startMs: number; endMs: number; confidence: number }[]
+```
+audio + lyrics_json
+  → Demucs 人声分离（use_demucs=true）
+  → faster-whisper 词级 ASR（分离人声与原音频各跑一遍，按词数/覆盖率/置信度选优）
+  → pypinyin + rapidfuzz 单调窗口匹配（整词序列滑窗，ratio 0.55 + partial_ratio 0.25 + 覆盖度 0.10 + 长度比 0.10，阈值 0.45）
+  → 覆盖率不足 55% 时退化为按时长的比例分配
+  → { lines: [{index, startMs, endMs, confidence, matchedText}], alignment_method }
 ```
 
-核心逻辑：
-1. 将 ASR words 按顺序排列成词序列
-2. 对每个用户歌词行，在词序列中模糊匹配（编辑距离 + 拼音）
-3. 匹配到的首个词的 start = 该行 startMs，末词的 end = endMs
-4. 计算 confidence = 匹配词数 / 期望词数
-5. 衔接相邻行间隙
-
-**API**：`web/app/api/projects/[id]/timeline/assisted/route.ts`
+本地侧流程：
 
 ```ts
 export async function POST(req, { params }) {
   const project = await prisma.project.findUnique({
     where: { id: params.id },
-    include: { lines: true }
+    include: { lines: { orderBy: { index: 'asc' } } },
   });
 
-  if (!project.transcriptJson) {
-    return Response.json({ error: '请先运行识别歌词' }, { status: 400 });
+  if (!project) return 404;
+  if (project.lines.length === 0) return 400;  // 唯一前置条件：有歌词
+
+  // 远端自带 ASR，不读本地 transcriptJson —— 用户自己提供歌词时无需跑识别
+  if (isRemoteAlignEnabled()) {
+    const { job_id: remoteJobId } = await startRemoteAlign(
+      project.audioPath,
+      project.lines.map((l) => l.text),
+      project.durationMs ?? undefined,
+    );
+    const job = await prisma.job.create({
+      data: { type: 'align', status: 'running', projectId: id,
+              params: JSON.stringify({ remoteJobId, remoteUrl: getRemoteAlignUrl() }) },
+    });
+    pollRemoteUntilDone(job.id, remoteJobId, id);  // fire-and-forget
+    return Response.json({ jobId: job.id, remoteJobId }, { status: 202 });
   }
 
-  // assisted 作用于当前项目的所有行，不区分 source。
-  // 用户编辑过的行（manual）和 ASR 原始行（transcribed）都需要时间线。
-  // 唯一例外：已经有 transcribed-aligned 或 weighted 时间线的行，
-  // 如果用户没改过文字，assisted 会覆盖更新。
-  const allLines = project.lines.sort((a, b) => a.index - b.index);
-  const transcriptData = JSON.parse(project.transcriptJson);
-  const result = assistedLayout(allLines, transcriptData);
-
-  // 写回 DB
-  await prisma.$transaction(
-    result.map(line =>
-      prisma.lyricLine.update({
-        where: { id: project.lines.find(l => l.index === line.index)!.id },
-        data: { startMs: line.startMs, endMs: line.endMs, source: 'transcribed-aligned', confidence: line.confidence }
-      })
-    )
-  );
-
-  return Response.json({ lines: result });
+  // 本地降级路径见 7.2
 }
 ```
 
-**验证**：上传音频 → ASR 识别 → 粘贴/确认歌词 → 点「生成时间线」→ 时间线精准匹配音频节奏。
+**质量门**（`validateRemoteAlignResult`，写库前拦截劣质结果）：
 
----
+- 返回 0 行 → 拒
+- 行数 < 期望值 50% → 拒
+- `alignment_method === 'proportional_fallback'` → 走放宽分支：零时长行 > 10% 拒、时间非单调（回退 > 50ms）拒、覆盖 < 90% 拒
+- 其余（`fuzzy_greedy`）→ 严检分支：有效行（`endMs > startMs && confidence >= 0.35 && matchedText` 非空）< max(2, 期望值 35%) 拒；零时长行 > 50% 拒；**存在 confidence >= 0.9 但 matchedText <= 2 字的行 → 拒**（典型假阳性）
 
-## Phase 8：强制对齐（增强）
+通过后 `writeAlignResults` 写回 `source="aligned"`。
+
+### 7.2 本地降级对齐
+
+未配置 `REMOTE_ALIGN_URL` 时创建 `Job(type="align", status="queued")`，由 `worker/main.py` 取走。
 
 **文件**：`worker/align.py`
 
-- Demucs 分离人声 → WhisperX forced alignment
-- 需要 GPU 机器
-- 写回 `source="aligned"` + confidence
-- 暂缓实施，不是 MVP 要求
+- 复用 `Project.transcriptJson` 的 word 级时间戳做 pypinyin + rapidfuzz 单调窗口匹配（逻辑与远端同源，阈值 0.35）
+- 无 word 时间戳时退化为 segment 级 `fuzz.ratio` 匹配（阈值 0.3）
+- 仍未命中的行按块等分补位，最后一行补到总时长
+
+**这条路径自身不做 ASR，因此必须先跑过一次识别歌词。** 守卫：
+
+```ts
+if (!isRemoteAlignEnabled() && !project.transcriptJson) {
+  return Response.json(
+    { error: '本地对齐需要词级时间戳，请先运行识别歌词' },
+    { status: 400 },
+  );
+}
+```
+
+**验证**：
+
+- 远端路径：上传音频 → 只粘贴歌词（**不跑识别**）→ 点「精确对齐」→ 确认不再返回 400，job 走 running → done，时间线与音频节奏吻合
+- 本地路径：临时清空 `REMOTE_ALIGN_URL` → 未跑识别时点对齐应返回 400 并提示；跑过识别后再点应成功
+- 兜底：断网 / 服务停掉时点对齐 → job 标 failed 带错误信息 → 点「字数粗排」仍能拿到可编辑时间线
 
 ---
 
-## Phase 9：LRC 导入导出
+## Phase 8：LRC 导入导出
 
 **文件**：`web/lib/lrc.ts`
 
@@ -657,7 +657,7 @@ API：
 
 ---
 
-## Phase 10：Docker Compose 部署
+## Phase 9：Docker Compose 部署
 
 **文件**：`docker-compose.yml`
 
@@ -694,17 +694,17 @@ Phase 1 ───── Phase 2 ───── Phase 3 ───── Phase 4 
   (骨架)       (手动编辑)      (weighted)      (预览)        (渲染)
                                                │
 Phase 6 ───── Phase 7       ← MVP 验收边界     │
-(ASR 草稿)   (assisted)    (phase 1-7 做完)    │
+(ASR 草稿)   (声学对齐)     (phase 1-7 做完)   │
                                                │
-Phase 8 ───── Phase 9 ───── Phase 10           │
-(align 增强)  (LRC)         (部署)              │
+Phase 8 ───── Phase 9                          │
+(LRC)        (部署)                            │
                                                 │
 Phase 4-5 自测时用手动校准过的歌验证预览=渲染同构，
 不要被 weighted 的烂时间线误导以为是组件 bug。
 ```
 
 每个 phase 完成时应当：
-1. `npm run build` 通过（Phase 1-5, 7-9）
+1. `npm run build` 通过（Phase 1-5, 7-8）
 2. 手动验证核心交互路径
 3. 保留项目数据不破坏
 
@@ -715,8 +715,9 @@ Phase 4-5 自测时用手动校准过的歌验证预览=渲染同构，
 | 陷阱 | 对策 |
 |---|---|
 | PUT /lyrics 覆盖了好时间戳 | design 里已解耦：PUT /lyrics 只改文本不碰时间线 |
-| assisted 秒回 but transcribe 还没跑 | API 返回 400 + 提示，前端引导用户先跑 transcribe |
-| weighted 被当主路径 | 前端 UI 中 assisted 按钮应排在 weighted 前面 |
+| 用户自带歌词却被要求先跑识别 | 远端对齐自带 ASR，只需要项目有歌词；只有本地降级路径依赖 `transcriptJson` |
+| 本地对齐无词级时间戳 | 未配 `REMOTE_ALIGN_URL` 且未跑过 transcribe 时返回 400，提示先跑识别歌词 |
+| weighted 被当主路径 | 前端 UI 中「精确对齐」按钮应排在「字数粗排」前面 |
 | Phase 4-5 用 weighted 测预览误判 | 用手动校准过的歌测同构，不用 weighted |
 | transcriptJson 太大 | faster-whisper word timestamps 通常 < 500KB，SQLite 存 JSON 无压力 |
 | `index` 是 SQLite 保留字 | worker 手写 SQL 时加双引号 `"index"`，或 Prisma schema 用 `@map("line_order")` 映射 |

@@ -22,6 +22,21 @@ export function normalizeAiBaseUrl(value: string): string {
   return trimmed.replace(/\/+$/, '');
 }
 
+/**
+ * Identity of the provider a fetched model list belongs to.
+ *
+ * Unlike {@link normalizeAiBaseUrl}, this must NOT substitute a default for an
+ * empty value: an incomplete base URL / API key pair has no provider identity,
+ * so it returns null and callers treat it as "not comparable" rather than as
+ * "switched to the default provider".
+ */
+export function getProviderKey(baseUrl: string, apiKey: string): string | null {
+  const trimmedBaseUrl = baseUrl.trim().replace(/\/+$/, '');
+  const trimmedApiKey = apiKey.trim();
+  if (!trimmedBaseUrl || !trimmedApiKey) return null;
+  return `${trimmedBaseUrl}::${trimmedApiKey}`;
+}
+
 export function loadAiSettings(): AiSettings {
   if (typeof window === 'undefined') return { ...DEFAULT_AI_SETTINGS };
   try {

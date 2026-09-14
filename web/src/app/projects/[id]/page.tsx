@@ -30,7 +30,7 @@ export default function ProjectEditorPage({
   const { activeJobs, finishedJobs, track, dismiss } = useJobs();
   const reloadedJobIds = useRef<Set<string>>(new Set());
 
-  const [syncing, setSyncing] = useState<'assisted' | 'weighted' | null>(null);
+  const [syncing, setSyncing] = useState<'weighted' | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
   const { settings: aiSettings, openSettings, isConfigured: isAiConfigured } = useAiSettings();
   const [aiCorrecting, setAiCorrecting] = useState(false);
@@ -357,31 +357,6 @@ export default function ProjectEditorPage({
                       title="Speech-to-text: extract lyrics from audio using faster-whisper"
                     >
                       {t('editor.transcribe')}
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!id) return;
-                        setSyncing('assisted');
-                        try {
-                          const res = await fetch(`/api/projects/${id}/timeline/assisted`, { method: 'POST' });
-                          if (!res.ok) { const err = await res.json(); alert(err.error || 'Assisted failed'); return; }
-                          const data = await res.json();
-                          await reloadProject();
-                          if (data.summary) {
-                            setStatusMsg(t('editor.assistedResult', {
-                              matched: data.summary.matchedCount,
-                              total: data.summary.totalCount,
-                              fallback: data.summary.fallbackCount,
-                            }));
-                          }
-                        } catch { alert('Assisted request failed'); }
-                        finally { setSyncing(null); }
-                      }}
-                      disabled={syncing === 'assisted'}
-                      className="btn-ghost text-xs"
-                      title="JS assisted alignment: character-match ASR timestamps"
-                    >
-                      {syncing === 'assisted' ? '...' : t('editor.assisted')}
                     </button>
                     <button
                       onClick={async () => {
