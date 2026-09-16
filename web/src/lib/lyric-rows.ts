@@ -97,3 +97,23 @@ export function buildRowsFromPunctuation(
   }
   return { rows };
 }
+
+/**
+ * The whole transcript as one row.
+ *
+ * Used when punctuation could not be obtained: the recognizer emits none of
+ * its own, and guessing breaks the user would have to undo is worse than
+ * letting them split the single row themselves.
+ */
+export function singleRowFromUnits(units: AsrUnit[]): LyricRow[] {
+  const cjk = units.map((u) => u.text).join('');
+  const text = cjkOnly(cjk);
+  if (text.length === 0 || units.length === 0) return [];
+  return [
+    {
+      text,
+      startMs: units[0].startMs,
+      endMs: units[units.length - 1].endMs,
+    },
+  ];
+}

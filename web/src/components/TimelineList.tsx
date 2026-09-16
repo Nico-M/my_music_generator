@@ -35,9 +35,18 @@ export default function TimelineList() {
     [updateLine]
   );
 
+  // Push a row's end forward to the next row's start, closing the gap.
+  //
+  // Only rows that actually have a gap are touched: a row that already ends at
+  // or after the next start is left alone, so a deliberate overlap or a manual
+  // adjustment is never undone.
   const handleAutoSuffix = () => {
     for (let i = 0; i < lines.length - 1; i++) {
-      if (lines[i + 1].startMs != null) updateLine(i, { endMs: lines[i + 1].startMs });
+      const nextStart = lines[i + 1].startMs;
+      const curEnd = lines[i].endMs;
+      if (nextStart != null && (curEnd == null || curEnd < nextStart)) {
+        updateLine(i, { endMs: nextStart });
+      }
     }
   };
 

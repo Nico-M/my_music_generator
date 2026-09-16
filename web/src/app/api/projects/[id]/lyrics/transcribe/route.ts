@@ -19,8 +19,10 @@ import path from 'path';
 import { prisma } from '@/lib/prisma';
 import { UPLOADS_DIR } from '@/lib/paths';
 import { transcribeWithMiniMax } from '@/lib/minimax-asr';
+import { punctuateLyrics } from '@/lib/minimax-llm';
+import { buildRowsFromPunctuation, singleRowFromUnits } from '@/lib/lyric-rows';
 import { fetchLrc } from '@/lib/lrc';
-import { alignLrcToAsr, cjkOnly } from '@/lib/lyric-align';
+import { alignLrcToAsr } from '@/lib/lyric-align';
 import { MAX_AUDIO_BYTES, MAX_AUDIO_DURATION_MS } from '@/lib/ai-settings';
 
 export interface TranscribeNotice {
@@ -124,18 +126,29 @@ export async function POST(
       };
     }
 
-    // Fallback: the recognizer's own text as a single row. Its punctuation is
-    // unreliable, so no attempt is made to guess line breaks the user would
-    // then have to undo.
+    // Fallback: lyrics library had nothing trustworthy, so the recognizer's own
+    // text is the best available. It carries no punctuation, so the LLM is
+    // asked to insert breaks; if that fails or returns a different character
+    // count, the transcript stays as one row rather than being guessed at.
     const aligned = rows !== null;
     if (!rows) {
-      rows = [
-        {
-          text: cjkOnly(units.map((u) => u.text).join('')),
-          startMs: units[0].startMs,
-          endMs: last.endMs,
-        },
-      ];
+      const rawText = units.map((u) => u.text).join('');
+      const punctuated = await punctuateLyrics(rawText, apiKey);
+      if (punctuated.ok) {
+        const built = buildRowsFromPunctuation(units, punctuated.result.text);
+        if (built.mismatch) {
+          console.warn(`[transcribe] punctuation rejected: ${built.mismatch}`);
+        } else {
+          rows = built.rows;
+        }
+      } else {
+        console.warn(`[transcribe] punctuation unavailable: ${punctuated.reason}`);
+      }
+    }
+    if (!rows) {
+      const single = singleRowFromUnits(units);
+      if (single.length === 0) return fail('识别结果中没有可用的歌词文字');
+      rows = single;
     }
 
     console.log(
