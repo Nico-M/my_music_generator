@@ -1,6 +1,8 @@
 # 实施计划
 
-基于 `docs/DESIGN.md v3` 的逐阶段构建指南。从零搭建项目，按 phase 顺序推进。
+基于 `docs/DESIGN.md v4` 的逐阶段构建指南。
+
+> **本文档记录项目如何建成，Phase 1-7 已全部落地。** 若要重新搭建或在另一台机器上复现，按本文档从头执行即可。
 
 ---
 
@@ -9,29 +11,22 @@
 > **项目根目录**：当前仓库根目录即为项目根目录，不额外套一层外层项目目录。
 
 ```bash
-# Web 容器（Next.js）—— 在 web/ 下初始化
+# Web（Next.js）—— 在 web/ 下初始化
 npx create-next-app@latest web --typescript --tailwind --app --src-dir
 cd web
-npm install @prisma/client @remotion/player @remotion/renderer remotion zustand
+npm install @prisma/client @remotion/player @remotion/renderer remotion zustand pinyin-pro
 npm install prisma --save-dev
 npx prisma init
 cd ..
 
-# Worker 容器（Python）
-mkdir -p worker
-cd worker
-python -m venv venv
-source venv/bin/activate
-pip install faster-whisper ffmpeg-python
-pip freeze > requirements.txt
-cd ..
-
-# 共享卷
+# 数据目录
 mkdir -p data/uploads data/renders
 
 # Docker Compose
 touch docker-compose.yml
 ```
+
+无需 Python 环境，无需本地机器学习依赖。
 
 ---
 
@@ -42,9 +37,9 @@ touch docker-compose.yml
 ### 1.1 Prisma schema
 
 `web/prisma/schema.prisma` — 直接复制 DESIGN.md §3 的三个模型：
-- `Project` — 含 `transcriptJson Json?`
-- `LyricLine` — source 枚举 `manual | transcribed | transcribed-aligned | weighted | aligned | lrc`（`transcribed-aligned` 仅为历史数据，现行代码不再产出，见 DESIGN §5.2）
-- `Job` — type 含 `transcribe | align | render`
+- `Project`
+- `LyricLine` — source 取值 `manual | transcribed | asr-aligned`（`transcribed-aligned` / `weighted` / `aligned` 仅为历史数据，现行代码不再产出，见 DESIGN §5.4）
+- `Job` — type 为 `transcribe | render`
 
 ```bash
 cd web
@@ -160,18 +155,14 @@ interface AudioPlayerProps {
 │        操作         │           source 变化               │
 ├─────────────────────┼─────────────────────────────────────┤
 │ 用户粘贴歌词        │ → manual                            │
-│ transcribe 写入     │ → transcribed                       │
-│ 用户编辑某行文本    │ transcribed → manual（关键！）       │
-│ 精确对齐全量写回    │ → aligned（处理所有行）             │
-│ weighted 粗排       │ → weighted                          │
-│ LRC 导入            │ → lrc                               │
+│ 识别（歌词库命中）  │ → asr-aligned                       │
+│ 识别（降级断句）    │ → transcribed                       │
+│ 用户编辑某行文本    │ → manual（关键！）                   │
 │ 用户手动微调时间    │ 保留原 source（只改 startMs/endMs）  │
 └─────────────────────┴─────────────────────────────────────┘
 ```
 
-**关键规则**：`transcribed` 行只由 ASR 生成。一旦用户碰过文本（哪怕改一个字），该行变为 `manual`。这保证了：
-- 下次重跑 transcribe 不会误删用户改过的行（`DELETE WHERE source='transcribed'`）
-- 对齐可以直接处理**所有行**（不挑 source），因为用户没改过的 transcribed 行也需要时间线
+**关键规则**：自动产生的行带 `transcribed` / `asr-aligned` 标记。一旦用户碰过该行文本，source 变为 `manual`。这保证了下次重跑识别时 `DELETE WHERE source IN ('transcribed','asr-aligned')` 不会误删用户改过的行。用户只微调时间不动文本时，source 保持不变。
 
 ```tsx
 interface LyricDraftEditorProps {
@@ -237,33 +228,11 @@ interface EditorStore {
 
 ---
 
-## Phase 3：兜底粗排（weighted）
+## Phase 3：（已删除）兜底粗排 weighted
 
-**文件**：`web/lib/weighted-layout.ts`
+早期实现过按字数权重把演唱时长等分的 `weighted-layout.ts` 与 `POST /timeline/weighted` 端点。有 ASR 时间戳后它毫无竞争力，且会让用户误以为时间线已经对齐好，已连同端点、按钮、`source="weighted"` 一起删除。原因见 DESIGN §5.4。
 
-```ts
-export function weightedLayout(
-  lines: { text: string }[],
-  durationMs: number,
-  vocalStartMs?: number,
-  vocalEndMs?: number
-): { index: number; startMs: number; endMs: number }[]
-```
-
-算法：
-1. 按每行字数计算权重 `weight = text.length`
-2. 可用时长 = `(vocalEndMs ?? durationMs) - (vocalStartMs ?? 0)`
-3. 每行时长 = `(weight / totalWeight) * availableDuration`
-4. 累计分配 startMs，endMs = startMs + lineDuration
-5. 衔接相邻行间隙
-
-**API**：`web/app/api/projects/[id]/timeline/weighted/route.ts`
-- POST，无需参数
-- 读项目获取 lines 和 durationMs
-- 调用 `weightedLayout()`，写回 DB
-- 设置 `source="weighted"`，清除旧时间线
-
-**验证**：粘贴歌词 → 点「粗排」→ 看到每行分配了时间线（虽然不准）。
+**本阶段不需要实现任何代码**，保留此节仅为记录演进。
 
 ---
 
@@ -379,8 +348,9 @@ export async function renderLyricVideo(
 - 起一个分离的 Node 子进程执行实际渲染，route handler 不等待
 
 ```ts
-// web/app/api/projects/[id]/render/route.ts
+// web/src/app/api/projects/[id]/render/route.ts
 import { spawn } from 'child_process';
+import path from 'path';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req, { params }) {
@@ -389,7 +359,8 @@ export async function POST(req, { params }) {
   });
 
   // fire-and-forget：分离子进程，不被 route handler 生命周期影响
-  spawn('node', ['scripts/render-worker.js', job.id], {
+  const workerScript = path.resolve(process.cwd(), 'scripts/render-worker.ts');
+  spawn('npx', ['tsx', workerScript, job.id], {
     detached: true,
     stdio: 'ignore'
   }).unref();
@@ -398,41 +369,30 @@ export async function POST(req, { params }) {
 }
 ```
 
-**文件**：`web/scripts/render-worker.js`
-```js
-// 独立的 Node 脚本，被 route handler 以子进程方式启动
+**文件**：`web/scripts/render-worker.ts`
+```ts
+// 独立的 tsx 脚本，被 route handler 以子进程方式启动
 // 它加载 job → 调 Remotion render → 更新 DB
-const { prisma } = require('./lib/prisma');
-const { renderLyricVideo } = require('./lib/render');
+const jobId = process.argv[2];
+const job = await prisma.job.findUnique({
+  where: { id: jobId },
+  include: { project: { include: { lines: true } } },
+});
 
-async function main() {
-  const jobId = process.argv[2];
-  const job = await prisma.job.findUnique({ where: { id: jobId }, include: { project: { include: { lines: true } } } });
-
-  try {
-    await prisma.job.update({ where: { id: jobId }, data: { status: 'running' } });
-    const outputPath = await renderLyricVideo(
-      job.project.id,
-      job.project.lines,
-      job.project.template,
-      job.project.audioPath,
-      Math.ceil((job.project.durationMs || 0) / 1000 * 30)
-    );
-    await prisma.job.update({ where: { id: jobId }, data: { status: 'done', resultPath: outputPath } });
-  } catch (e) {
-    await prisma.job.update({ where: { id: jobId }, data: { status: 'failed', error: e.message } });
-  }
-  await prisma.$disconnect();
+try {
+  await prisma.job.update({ where: { id: jobId }, data: { status: 'running' } });
+  const outputPath = await renderLyricVideo(/* project, lines, template, audio, frames */);
+  await prisma.job.update({ where: { id: jobId }, data: { status: 'done', resultPath: outputPath } });
+} catch (e) {
+  await prisma.job.update({ where: { id: jobId }, data: { status: 'failed', error: e.message } });
 }
-main();
+await prisma.$disconnect();
 ```
 
-- 前端轮询 `GET /api/jobs/:id` 获取 status/progress/resultPath
+- 前端轮询 `GET /api/jobs/:id` 获取 status / resultPath
 - Route 秒回，不会超时
 
-> **⚠️ 为什么不直接在 route handler 里 await renderMedia**：5400 帧（3 分钟 @30fps）耗时数分钟，Next.js route handler 会超时。分离子进程方案在本地/自托管 MVP 中足够可靠。
->
-> **后续扩展**：生产部署时，把 render-worker.js 的逻辑移到独立容器中，通过 DB 轮询 job 表工作（和 Python worker 同模式）。
+> **⚠️ 为什么不直接在 route handler 里 await renderMedia**：5400 帧（3 分钟 @30fps）耗时数分钟，Next.js route handler 会超时。分离子进程方案在本地/自托管场景中足够可靠。这也是**应用内唯一保留的子进程**——渲染本来就该在独立进程跑，与已删除的 job 轮询型 Python worker 不是一回事。
 
 **API**：`web/app/api/files/[id]/download/route.ts`
 - GET → 读取 outputPath 返回文件流
@@ -441,219 +401,90 @@ main();
 
 ---
 
-## Phase 6：ASR 歌词草稿
+## Phase 6：歌词识别（transcribe job）
 
-### 6.1 Worker 主循环
+### 6.1 Job 结构
 
-**文件**：`worker/main.py`
+`Job(type="transcribe")` 仍是异步任务：route handler 建行后立即返回 `jobId`，实际工作在同一进程内 fire-and-forget 执行，前端轮询 `/api/jobs/[id]`。
 
-```python
-import time, sqlite3, os
+早期这里是 Python worker 轮询 SQLite。删掉 worker 后，任务仍走 DB 表是为了**保持前端协议不变**——任务状态、错误信息、重试语义都没变，只是执行者从独立进程换成了同一个 Next.js 进程。
 
-DB_PATH = "/data/sqlite.db"
-UPLOADS_DIR = "/data/uploads"
+### 6.2 识别管线
 
-def poll_jobs():
-    conn = sqlite3.connect(DB_PATH)
-    # ⚠️ 关键：打开 WAL 模式 + busy_timeout，否则 web+worker 两进程并发写会 database is locked
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=5000")
-    while True:
-        # ⚠️ Prisma 默认使用 camelCase 列名，不是 snake_case
-        # 运行 npx prisma db push 后用 .schema 核对真实列名
-        cursor = conn.execute(
-            'SELECT id, "projectId", params FROM Job WHERE type=\'transcribe\' AND status=\'queued\' LIMIT 1'
-        )
-        row = cursor.fetchone()
-        if row:
-            job_id, project_id, params_json = row
-            conn.execute("UPDATE Job SET status='running' WHERE id=?", (job_id,))
-            conn.commit()
-            try:
-                from transcribe import run_transcribe
-                run_transcribe(project_id, DB_PATH, UPLOADS_DIR)
-                conn.execute("UPDATE Job SET status='done' WHERE id=?", (job_id,))
-            except Exception as e:
-                conn.execute("UPDATE Job SET status='failed', error=? WHERE id=?", (str(e), job_id))
-            conn.commit()
-        time.sleep(5)
+**文件**：`web/src/lib/minimax-asr.ts`、`web/src/lib/lrc.ts`、`web/src/lib/lyric-align.ts`、`web/src/app/api/projects/[id]/lyrics/transcribe/route.ts`
 
-if __name__ == "__main__":
-    poll_jobs()
+```
+POST /lyrics/transcribe
+  │
+  1. 建 Job(type="transcribe", status="running")，立即返回 jobId
+  │
+  2. 并行：
+  │     a. MiniMax ASR（音频 + API Key）→ 逐字时间戳 AsrUnit[]
+  │         ⚠️ 时长 > 500s 或文件 > 50MB 提前拒绝
+  │     b. 歌词库 api.lrc.cx（title + artist）→ LrcLine[]
+  │
+  3. 歌词库命中 → alignLrcToAsr(units, lrcLines)（§7）
+  │     匹配率 < 50% → 视为未命中，走 4
+  │
+  4. 未命中 → minimax-llm.ts 对 ASR 原文断句，按比例分配时间
+  │
+  5. 事务内：DELETE 旧 source IN ('transcribed','asr-aligned') 的行 → INSERT 新行
+  │     ——用户手改过的行 source='manual'，不会被删
+  │
+  6. Job 标 done（或 failed + error）
 ```
 
-### 6.2 Transcribe 管线
+**关键约束**：整条链路不写 `Project` 表的临时字段，中间产物（ASR units、歌词库结果）只在内存里活一次调用。
 
-**文件**：`worker/transcribe.py`
+### 6.3 前端
 
-```python
-from faster_whisper import WhisperModel
-import json, sqlite3, ffmpeg
+- 点「识别歌词」→ `POST /lyrics/transcribe` → 用 `use-jobs.ts` 轮询
+- 降级时（歌词来自 ASR）界面必须显示提示，否则用户会以为文字是准的
 
-def run_transcribe(project_id: str, db_path: str, uploads_dir: str):
-    conn = sqlite3.connect(db_path)
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA busy_timeout=5000")
-
-    # ⚠️ Prisma 默认 camelCase 列名；运行 .schema 核对后再写 SQL
-    row = conn.execute('SELECT "audioPath" FROM Project WHERE "id"=?', (project_id,)).fetchone()
-    audio_path = row[0]
-
-    # 1. ffmpeg 转 wav/mono/16k
-    wav_path = audio_path.replace('.mp3', '_16k.wav')
-    ffmpeg.input(audio_path).output(wav_path, acodec='pcm_s16le', ac=1, ar=16000).run()
-
-    # 2. faster-whisper with word_timestamps
-    model = WhisperModel("base", device="cpu", compute_type="int8")
-    segments, info = model.transcribe(wav_path, word_timestamps=True, language="zh")
-    # ⚠️ segments 是惰性生成器（generator），立即物化，否则只能迭代一次
-    segments = list(segments)
-
-    # 3. 收集词级时间戳 + segment
-    words = []
-    segment_texts = []
-    for seg in segments:
-        segment_texts.append({"start": seg.start, "end": seg.end, "text": seg.text})
-        for word in seg.words:
-            words.append({"word": word.word, "start": word.start, "end": word.end})
-
-    transcript_data = {"segments": segment_texts, "words": words}
-
-    # 4. 写回 LyricLine (source="transcribed")
-    #    ⚠️ index 是 SQLite 保留字，必须加双引号
-    #    ⚠️ 仅删旧的 transcribed 行，不碰 manual/weighted/aligned 行
-    conn.execute('DELETE FROM LyricLine WHERE "projectId"=? AND "source"=\'transcribed\'', (project_id,))
-    for idx, seg in enumerate(segment_texts):
-        conn.execute(
-            'INSERT INTO LyricLine ("id", "projectId", "index", "text", "startMs", "endMs", "source") VALUES (?,?,?,?,?,?,?)',
-            (f"{project_id}_t{idx}", project_id, idx, seg["text"],
-             int(seg["start"]*1000), int(seg["end"]*1000), "transcribed")
-        )
-
-    # 5. 写回 Project.transcriptJson
-    conn.execute('UPDATE Project SET "transcriptJson"=? WHERE "id"=?',
-                 (json.dumps(transcript_data, ensure_ascii=False), project_id))
-    conn.commit()
-```
-
-> **⚠️ Prisma ↔ 裸 SQL schema 一致性（通用规则）**：Worker 绕过 Prisma 直接写 SQL，但 Prisma 建的 SQLite 数据库默认使用 camelCase 列名（`projectId`、`audioPath`、`createdAt`），不会自动做 snake_case 转换。Web 端用 Prisma Client 没这个问题，但 worker 的每个手写 SQL 都可能踩坑。
->
-> 操作流程：
-> 1. 运行 `npx prisma db push` 让 Prisma 建表
-> 2. 用 `sqlite3 /data/sqlite.db ".schema [表名]"` 核对每个表的真实列名
-> 3. 所有手写 SQL 列名加双引号，例如 `"projectId"`、`"audioPath"`、`"createdAt"`
-> 4. `index` 是 SQLite 保留字，必须加双引号 `"index"`；或在 Prisma schema 中加 `@map("line_order")` 彻底避开
-
-### 6.3 API 入口
-
-`web/app/api/projects/[id]/lyrics/transcribe/route.ts`
-- POST → 创建 Job(type="transcribe")，返回 jobId
-- worker 轮询到后执行
-
-**验证**：上传一首歌 → 点「识别歌词」→ 等待 → 看到 ASR 生成的歌词草稿和时间线。
+**验证**：上传一首歌 → 点「识别歌词」→ 等待 → 歌词文字与时间轴同时出现，且时间轴对得上演唱。
 
 ---
 
-## Phase 7：声学对齐（主路径）
+## Phase 7：拼音对齐
 
-对齐拆成两条可互换的实现，由 `REMOTE_ALIGN_URL` 是否配置决定走哪条。前端是同一个「精确对齐」入口。
-
-### 7.1 远端对齐（推荐）
-
-**文件**：`web/lib/remote-align.ts`（客户端 + 质量门）、`web/app/api/projects/[id]/timeline/align/route.ts`（入口）
-
-远端是一个独立服务（FastAPI），自带完整流水线：
+**文件**：`web/src/lib/lyric-align.ts`
 
 ```
-audio + lyrics_json
-  → Demucs 人声分离（use_demucs=true）
-  → faster-whisper 词级 ASR（分离人声与原音频各跑一遍，按词数/覆盖率/置信度选优）
-  → pypinyin + rapidfuzz 单调窗口匹配（整词序列滑窗，ratio 0.55 + partial_ratio 0.25 + 覆盖度 0.10 + 长度比 0.10，阈值 0.45）
-  → 覆盖率不足 55% 时退化为按时长的比例分配
-  → { lines: [{index, startMs, endMs, confidence, matchedText}], alignment_method }
+alignLrcToAsr(units: AsrUnit[], lrcLines: LrcLine[]): AlignResult
+  │
+  1. cjkOnly: 两侧只保留 CJK 字符，记录每个 ASR 字符的时间
+  │
+  2. toPinyin: pinyin-pro → 一字一音节（简繁自然统一）
+  │
+  3. alignByPinyin: DP 求 LCS → 单调的「ASR 下标 → 歌词下标」映射
+  │     未命中间隙在相邻锚点间线性插值
+  │
+  4. matchRate < 0.5 → 返回 { rows: [], reason } 交给调用方降级
+  │
+  5. 按歌词行分桶，取桶内 ASR 字符首尾时间作为该行 startMs/endMs
+  │     某行被唱到的字符 < 该行字数一半 → 丢弃（本录音没唱这段）
+  │
+输出: { rows: LyricRow[], matchRate }
 ```
 
-本地侧流程：
-
-```ts
-export async function POST(req, { params }) {
-  const project = await prisma.project.findUnique({
-    where: { id: params.id },
-    include: { lines: { orderBy: { index: 'asc' } } },
-  });
-
-  if (!project) return 404;
-  if (project.lines.length === 0) return 400;  // 唯一前置条件：有歌词
-
-  // 远端自带 ASR，不读本地 transcriptJson —— 用户自己提供歌词时无需跑识别
-  if (isRemoteAlignEnabled()) {
-    const { job_id: remoteJobId } = await startRemoteAlign(
-      project.audioPath,
-      project.lines.map((l) => l.text),
-      project.durationMs ?? undefined,
-    );
-    const job = await prisma.job.create({
-      data: { type: 'align', status: 'running', projectId: id,
-              params: JSON.stringify({ remoteJobId, remoteUrl: getRemoteAlignUrl() }) },
-    });
-    pollRemoteUntilDone(job.id, remoteJobId, id);  // fire-and-forget
-    return Response.json({ jobId: job.id, remoteJobId }, { status: 202 });
-  }
-
-  // 本地降级路径见 7.2
-}
-```
-
-**质量门**（`validateRemoteAlignResult`，写库前拦截劣质结果）：
-
-- 返回 0 行 → 拒
-- 行数 < 期望值 50% → 拒
-- `alignment_method === 'proportional_fallback'` → 走放宽分支：零时长行 > 10% 拒、时间非单调（回退 > 50ms）拒、覆盖 < 90% 拒
-- 其余（`fuzzy_greedy`）→ 严检分支：有效行（`endMs > startMs && confidence >= 0.35 && matchedText` 非空）< max(2, 期望值 35%) 拒；零时长行 > 50% 拒；**存在 confidence >= 0.9 但 matchedText <= 2 字的行 → 拒**（典型假阳性）
-
-通过后 `writeAlignResults` 写回 `source="aligned"`。
-
-### 7.2 本地降级对齐
-
-未配置 `REMOTE_ALIGN_URL` 时创建 `Job(type="align", status="queued")`，由 `worker/main.py` 取走。
-
-**文件**：`worker/align.py`
-
-- 复用 `Project.transcriptJson` 的 word 级时间戳做 pypinyin + rapidfuzz 单调窗口匹配（逻辑与远端同源，阈值 0.35）
-- 无 word 时间戳时退化为 segment 级 `fuzz.ratio` 匹配（阈值 0.3）
-- 仍未命中的行按块等分补位，最后一行补到总时长
-
-**这条路径自身不做 ASR，因此必须先跑过一次识别歌词。** 守卫：
-
-```ts
-if (!isRemoteAlignEnabled() && !project.transcriptJson) {
-  return Response.json(
-    { error: '本地对齐需要词级时间戳，请先运行识别歌词' },
-    { status: 400 },
-  );
-}
-```
+**为什么不用字符集合重叠**：那正是被删掉的 `assisted` 路径的做法，丢顺序、折叠重复字、游标不可逆。LCS 在拼音序列上天然单调，重复段（副歌）不会带偏后续行。原因详见 DESIGN §5.4。
 
 **验证**：
 
-- 远端路径：上传音频 → 只粘贴歌词（**不跑识别**）→ 点「精确对齐」→ 确认不再返回 400，job 走 running → done，时间线与音频节奏吻合
-- 本地路径：临时清空 `REMOTE_ALIGN_URL` → 未跑识别时点对齐应返回 400 并提示；跑过识别后再点应成功
-- 兜底：断网 / 服务停掉时点对齐 → job 标 failed 带错误信息 → 点「字数粗排」仍能拿到可编辑时间线
+- 用一首歌词库能命中的歌 → 识别 → 时间轴与演唱节奏吻合，副歌第二遍不错位
+- 用一首歌词库查不到的歌 → 识别 → 拿到带错字提示的草稿，流程不阻塞
 
 ---
 
-## Phase 8：LRC 导入导出
+## Phase 8：LRC 导入导出（未实现）
 
-**文件**：`web/lib/lrc.ts`
+计划提供：
 
-```ts
-export function parseLRC(lrcText: string): { timeMs: number; text: string }[]
-export function toLRC(lines: LyricLine[]): string
-```
+- `parseLRC(text)` / `toLRC(lines)` 放在 `web/src/lib/lrc.ts`（该文件现已存在，负责的是**歌词库查询与解析**，导入导出可直接复用其解析部分）
+- `POST /api/projects/:id/lyrics/import-lrc` → 解析 LRC 直接填时间
+- `GET /api/projects/:id/export.lrc` → 导出当前时间线
 
-API：
-- `POST /api/projects/:id/lyrics/import-lrc` → 解析 LRC 直接填 startMs
-- `GET /api/projects/:id/export.lrc` → 导出当前时间线为 LRC
+价值是让用户的校准劳动可复用。当前未做。
 
 ---
 
@@ -662,17 +493,14 @@ API：
 **文件**：`docker-compose.yml`
 
 ```yaml
-version: '3.8'
 services:
   web:
     build: ./web
     ports: ["3000:3000"]
     volumes: ["./data:/data"]
-    depends_on: [worker]
-  worker:
-    build: ./worker
-    volumes: ["./data:/data"]
 ```
+
+单服务，无 `depends_on`。
 
 > **⚠️ Remotion 系统依赖**：`@remotion/renderer` 依赖 headless Chromium。Dockerfile 中必须安装：
 > ```
@@ -687,24 +515,17 @@ services:
 
 ---
 
-## 实施顺序建议
+## 实施顺序
 
 ```
-Phase 1 ───── Phase 2 ───── Phase 3 ───── Phase 4 ───── Phase 5
-  (骨架)       (手动编辑)      (weighted)      (预览)        (渲染)
-                                               │
-Phase 6 ───── Phase 7       ← MVP 验收边界     │
-(ASR 草稿)   (声学对齐)     (phase 1-7 做完)   │
-                                               │
-Phase 8 ───── Phase 9                          │
-(LRC)        (部署)                            │
-                                                │
-Phase 4-5 自测时用手动校准过的歌验证预览=渲染同构，
-不要被 weighted 的烂时间线误导以为是组件 bug。
+Phase 1 ── Phase 2 ── Phase 4 ── Phase 5 ── Phase 6 ── Phase 7 ✅
+ (骨架)    (编辑器)    (预览)     (渲染)    (识别)     (拼音对齐)
+             │
+           Phase 3(weighted) 与 Phase 8(LRC) 已删除/未实现
 ```
 
 每个 phase 完成时应当：
-1. `npm run build` 通过（Phase 1-5, 7-8）
+1. `npx tsc --noEmit` 与 `next build` 通过
 2. 手动验证核心交互路径
 3. 保留项目数据不破坏
 
@@ -714,16 +535,15 @@ Phase 4-5 自测时用手动校准过的歌验证预览=渲染同构，
 
 | 陷阱 | 对策 |
 |---|---|
-| PUT /lyrics 覆盖了好时间戳 | design 里已解耦：PUT /lyrics 只改文本不碰时间线 |
-| 用户自带歌词却被要求先跑识别 | 远端对齐自带 ASR，只需要项目有歌词；只有本地降级路径依赖 `transcriptJson` |
-| 本地对齐无词级时间戳 | 未配 `REMOTE_ALIGN_URL` 且未跑过 transcribe 时返回 400，提示先跑识别歌词 |
-| weighted 被当主路径 | 前端 UI 中「精确对齐」按钮应排在「字数粗排」前面 |
-| Phase 4-5 用 weighted 测预览误判 | 用手动校准过的歌测同构，不用 weighted |
-| transcriptJson 太大 | faster-whisper word timestamps 通常 < 500KB，SQLite 存 JSON 无压力 |
-| `index` 是 SQLite 保留字 | worker 手写 SQL 时加双引号 `"index"`，或 Prisma schema 用 `@map("line_order")` 映射 |
-| web + worker 并发写 SQLite | 两进程都开 `PRAGMA journal_mode=WAL` + `PRAGMA busy_timeout=5000` |
-| transcribe 误删用户改过的行 | 只删 `source='transcribed'` 的行；用户编辑文本时 source 变为 `manual`，不会被删 |
-| 浏览器无法加载 `/data/...` 文件路径 | 用 `/api/files/xxx` 路由提供 HTTP URL，组件中做路径转换 |
+| 歌词库时间轴被误用 | 歌词库的 LRC 时间对应原版录音，**永远丢弃**，只取其文字 |
+| 拼音对齐忽略简繁 | `pinyin-pro` 在拼音层统一，不要自己做简繁转换 |
+| 匹配率低却硬写结果 | 低于 50% 直接放弃并降级，坏数据比没有更危险 |
+| 重复段（副歌）错位 | 用 LCS 保证映射单调，不要用滑动窗口贪心 |
+| ASR 超时/超长 | 调用前用 ffprobe 的 durationMs 判断，超 500s 提前拒绝 |
+| API Key 进日志 | 服务端只透传，不落库、不打日志 |
+| 识别覆盖用户改过的行 | 只删 `source IN ('transcribed','asr-aligned')`，`manual` 不动 |
+| `index` 是 SQLite 保留字 | Prisma 生成的 SQL 无此问题；手写 SQL 时加双引号 `"index"` |
+| 浏览器无法加载 `/data/...` 文件路径 | 用 `/api/files/:id/*` 路由提供 HTTP URL，组件中做路径转换 |
 | durationInFrames 不知道填多少 | 用 Remotion `calculateMetadata` 动态计算 `Math.ceil(durationMs/1000*30)` |
 | render 阻塞 Next.js 超时 | render 走后台 job + 前端轮询，不在 route handler 里同步等 |
 | Docker 中文字体方块 | Dockerfile 安装 `fonts-noto-cjk` 和 Chromium 系统依赖 |

@@ -1,13 +1,13 @@
-# 唱歌视频生成器 — 技术方案 v3.1
+# 唱歌视频生成器 — 技术方案 v4
 
-> 用户上传一段音频，优先粘贴/确认歌词文本，应用生成可编辑时间线；用户边听边校准，预览「抖音 Notes Todo」竖屏模板，最终渲染 1080×1920 的竖屏 MP4。ASR 识别歌词是辅助入口：用于生成可编辑草稿，不是 MVP 的唯一地基。
+> 用户上传一段音频，应用调用外部服务自动识别歌词并对齐时间线；用户边听边校准，预览「抖音 Notes Todo」竖屏模板，最终渲染 1080×1920 的竖屏 MP4。
 
 ## 0. 核心理念（决定一切的四条）
 
-1. **先做「纯手动也可靠」的编辑器，再用自动化提速。** 用户手里有歌词时，必须能靠粘贴歌词 + 粗排 + 手动打点完成整条流程；ASR、强制对齐都只是加速器，不能成为阻塞点。
-2. **歌词识别和时间线对齐分开。** `transcribe` 只负责从音频生成可编辑歌词草稿；`align` 才负责把已确认歌词对到音频时间线上。两者混在一起会让失败原因不可控。
+1. **时间轴必须来自用户自己的录音。** 歌词库的歌词文字是准的，但它自带的 LRC 时间轴对应原版录音，与用户的演唱速度、编曲都不同，只能丢弃。逐字时间戳一律来自对当前音频的 ASR。
+2. **文字与时间来自不同来源，各取所长。** 语音识别在歌唱场景错字多，但它的时间戳对得上用户的演唱；歌词库文字准确，但时间轴不可用。两者通过拼音对齐合并 —— 拼音层不受简繁差异影响。
 3. **预览与渲染共用同一份 React 组件。** 所见即所得靠的是「同一个 Remotion Composition，预览用 Player、导出用 Renderer」，绝不能两套 DOM。
-4. **faster-whisper 的词时间戳是最廉价的好东西。** 即使 ASR 识别文字是错的，它产生的词级时间戳来自音频声学，位置是准的。用用户确认后的正确歌词模糊匹配到这些时间戳上，就能以接近零额外成本获得接近 align 质量的时间线。
+4. **不引入本地机器学习依赖。** 识别与对齐全部走外部 API，整个应用是一个 Next.js 服务。曾经存在的 Python worker 与独立对齐服务（faster-whisper / Demucs / WhisperX）已全部移除，原因见 §5.2、§5.4。
 
 ---
 
@@ -15,57 +15,50 @@
 
 | 层 | 选型 | 说明 |
 |---|---|---|
-| 前端 + 轻 API | **Next.js (App Router) + TypeScript** | route handlers 当 API，省一个服务 |
+| 前端 + API | **Next.js (App Router) + TypeScript** | route handlers 当 API，单服务 |
 | UI | React + Tailwind + Zustand | 编辑器状态用 Zustand，简单够用 |
 | 预览 | **`@remotion/player`** | 与渲染共用 Composition |
-| 渲染 | **Remotion (`@remotion/renderer`)** | todo 模板就是 HTML/CSS，天生契合 |
-| DB | **SQLite + Prisma**（MVP）| 单机够用，以后换 Postgres 零成本 |
+| 渲染 | **Remotion (`@remotion/renderer`)** | 模板就是 HTML/CSS，天生契合 |
+| DB | **SQLite + Prisma** | 单机够用，以后换 Postgres 零成本 |
 | 音频探针 | `ffprobe` | 取时长 |
-| **AI worker** | **Python：faster-whisper；后续 WhisperX + Demucs** | MVP 先做歌词草稿识别；强制对齐后置 |
-| 队列 | **DB 轮询**（MVP）| 别上 Redis/BullMQ，过早复杂化 |
-| 存储 | 本地磁盘 + 静态目录 | MVP 不上 S3 |
-| 部署 | Docker Compose（web / worker 两个容器）| 本地或自托管环境 |
+| 歌词识别 | **MiniMax ASR**（外部 API） | 逐字时间戳，对应本录音 |
+| 歌词文字 | **api.lrc.cx**（外部 API） | 准确歌词，时间轴丢弃 |
+| 简繁 / 拼音对齐 | **`pinyin-pro`** | 纯 JS，简繁在拼音层自然统一 |
+| 部署 | Docker Compose（单 web 服务） | 本地或自托管环境 |
 
-**为什么不是 NestJS**：MVP 阶段它的模块/DI 仪式感是纯负担，Next.js route handlers 完全够。
-**为什么必须有 Python**：faster-whisper / WhisperX / Demucs 都在 Python 生态，Node 没有等价成熟方案。
+**为什么不再需要 Python**：曾用本地 faster-whisper 做识别、Demucs 做人声分离，但中文歌唱场景下识别错字多，且需要约 2GB 的本地依赖。改用商业 ASR 后，文字质量由歌词库保证、时间轴由 ASR 保证，本地 ML 链路失去存在理由。
+
+**为什么保留 SQLite**：单用户场景下并发压力低，Prisma 让将来切 Postgres 的成本接近零。
 
 ---
 
 ## 2. 系统架构
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Next.js (web 容器)                               │
-│  ┌───────────────┐   ┌──────────────────────┐    │
-│  │ 编辑器前端      │   │ route handlers (API) │    │
-│  │ - 播放器        │   │ - 上传/项目/歌词      │    │
-│  │ - 歌词草稿确认  │←→ │ - 起识别/对齐任务    │    │
-│  │ - 时间线列表    │   │ - 起渲染任务          │    │
-│  │ - Remotion      │   │ - ffprobe / Remotion │    │
-│  │   Player 预览   │   │   render             │    │
-│  └───────────────┘   └──────────┬───────────┘    │
-└──────────────────────────────────┼────────────────┘
-                                    │ 写 job 行
-                          ┌─────────▼─────────┐
-                          │  SQLite (Prisma)   │  ← 共享卷
-                          └─────────▲─────────┘
-                                    │ 轮询 job
-┌───────────────────────────────────┼────────────────┐
-│  Python worker (worker 容器)        │                │
-│  轮询循环                            │                │
-│  ┌──────────────────────────────┐  │                │
-│  │ transcribe job:              │  │                │
-│  │  faster-whisper → 歌词草稿    │  │                │
-│  └──────────────────────────────┘  │                │
-│  ┌──────────────────────────────┐  │                │
-│  │ align job（后续增强）:         │  │                │
-│  │  WhisperX/Demucs → 句级时间戳 │  │                │
-│  └──────────────────────────────┘  │                │
-└─────────────────────────────────────────────────────┘
-         共享卷: /data/uploads  /data/renders
+┌────────────────────────────────────────────────────────────┐
+│  web/  (Next.js，单容器)                                     │
+│  ┌───────────────┐   ┌────────────────────────────────┐    │
+│  │ 编辑器前端      │   │ route handlers (API)           │    │
+│  │ - 播放器        │   │ - 上传 / 项目 / 歌词            │    │
+│  │ - 时间线列表    │←→ │ - 起识别任务 / 起渲染任务        │    │
+│  │ - Remotion      │   │ - ffprobe / Remotion render    │    │
+│  │   Player 预览   │   │ - 独占 SQLite (Prisma)          │    │
+│  └───────────────┘   └───────────┬────────────────────┘    │
+└──────────────────────────────────┼─────────────────────────┘
+                                   │ HTTP（并行）
+                 ┌─────────────────┴─────────────────┐
+                 ▼                                   ▼
+      ┌────────────────────┐            ┌──────────────────────┐
+      │ MiniMax ASR        │            │ 歌词库 (api.lrc.cx)   │
+      │ 本录音的逐字时间戳   │            │ 准确的歌词文字         │
+      └────────────────────┘            └──────────────────────┘
+                 │                                   │
+                 └──────────────┬────────────────────┘
+                                ▼
+                    拼音对齐（pinyin-pro）→ 时间线
 ```
 
-渲染放在 web 容器（Remotion 是 Node），AI 任务放在 worker 容器（Python）。两边通过 DB 的 job 表 + 共享卷通信。
+渲染与任务调度都在 web 进程内：Remotion 是 Node 包，ASR 与歌词库是 HTTP 调用，没有需要独立进程的重活。任务状态仍写在 SQLite 的 `Job` 表里，前端轮询 `/api/jobs/[id]`。
 
 ---
 
@@ -80,7 +73,6 @@ model Project {
   vocalStartMs Int         @default(0)          // 人声起点（用户/对齐填）
   vocalEndMs   Int         @default(0)          // 人声终点
   template     Json                             // 模板配置，见 §6
-  transcriptJson Json?                          // faster-whisper 原始词级时间戳（供本地 worker 对齐复用）
   lines        LyricLine[]
   jobs         Job[]
   createdAt    DateTime    @default(now())
@@ -95,7 +87,7 @@ model LyricLine {
   text       String
   startMs    Int                              // 句首
   endMs      Int                              // 句尾
-  source     String   @default("manual")      // manual | transcribed | transcribed-aligned | weighted | aligned | lrc（transcribed-aligned 为历史数据，已不再产生）
+  source     String   @default("manual")      // manual | transcribed | asr-aligned | lrc（transcribed-aligned / weighted / aligned 为历史数据，已不再产生）
   confidence Float?                            // 识别/对齐置信度，低的高亮提醒用户
   @@unique([projectId, index])
 }
@@ -104,7 +96,7 @@ model Job {
   id         String   @id @default(cuid())
   projectId  String
   project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  type       String                            // "transcribe" | "align" | "render"
+  type       String                            // "transcribe" | "render"
   status     String   @default("queued")       // queued|running|done|failed
   progress   Int      @default(0)              // 0-100
   params     Json?                             // 任务入参快照
@@ -115,9 +107,9 @@ model Job {
 }
 ```
 
-**关键设计**：`source` 和 `confidence` 是体验关键——ASR 草稿行标 `transcribed`，时间线粗排行标 `weighted`，强制对齐结果标 `aligned`。前端把低置信度或自动生成的行高亮提醒用户确认，但永远允许用户手动覆盖。
+**关键设计**：`source` 和 `confidence` 是体验关键——ASR 草稿行标 `transcribed`，歌词库 + 拼音对齐的行标 `asr-aligned`。前端把低置信度或自动生成的行高亮提醒用户确认，但永远允许用户手动覆盖。
 
-`aligned` 是最有价值的 source 值：它代表真实的声学时间位置（Demucs 人声分离 + 词级 ASR + 拼音模糊匹配），质量远好于 weighted 的字数猜测。旧版本用纯 JS 的 `assisted` 路径产出 `transcribed-aligned`，已删除——原因见 §5.2。
+`asr-aligned` 是最有价值的 source 值：它代表时间轴来自真实声学位置（MiniMax ASR 逐字时间戳）与准确歌词文字（歌词库）的合并结果，质量远好于早年按字数平分的猜测。旧版本产出的 `weighted` / `aligned` / `transcribed-aligned` 现已全部废弃——原因见 §5.2、§5.4。
 
 ---
 
@@ -128,141 +120,127 @@ model Job {
 POST   /api/uploads/audio          form-data，存盘 + ffprobe → 返回 {audioPath, durationMs}
 POST   /api/projects               创建项目
 GET    /api/projects/:id           项目详情（含 lines）
-PATCH  /api/projects/:id           改 title / vocalStart/End / template
+PATCH  /api/projects/:id           改 title / artist / vocalStart / vocalEnd / template
 
-# 歌词
-PUT    /api/projects/:id/lyrics    整批替换歌词文本（粘贴/确认），按行拆；**不自动重算时间线**
-POST   /api/projects/:id/lyrics/transcribe     起 transcribe job，生成可编辑歌词草稿
-POST   /api/projects/:id/lyrics/import-lrc     导入 LRC（带时间戳，直接填 startMs）
-
-# 时间线（用户显式触发，永不偷跑）
-POST   /api/projects/:id/timeline/weighted     字数权重兜底粗排（同步，永不失败）
-POST   /api/projects/:id/timeline/align        起 align job（异步）→ 返回 jobId
-PUT    /api/projects/:id/timeline              保存用户校准后的全部行时间
+# 歌词与时间线
+POST   /api/projects/:id/lyrics/transcribe   起 transcribe job：ASR 时间戳 + 歌词库文字
+                                             + 拼音对齐，一次产出歌词与时间线
+PUT    /api/projects/:id/timeline            保存用户校准后的全部行时间
 
 # 任务
-GET    /api/jobs/:id               轮询 status/progress/result
+GET    /api/jobs/:id               轮询 status / result
 
-# 渲染
+# 渲染与文件
 POST   /api/projects/:id/render    起 render job → jobId
+GET    /api/files/:id/preview      预览产物
 GET    /api/files/:id/download     下载 MP4
 
-# 导出
-GET    /api/projects/:id/export.lrc   导出 LRC（用户劳动可复用）
+# 配置
+POST   /api/ai/test-connection     校验浏览器传来的 MiniMax API Key
 ```
 
-核心路径是 `PUT lyrics → align（异步，声学时间戳）→ 手动校准 → preview → render`；`weighted` 是纯兜底（align 不可用时显示让用户点，保证任何环境下都能进入编辑和渲染）。
+核心路径是 `transcribe（异步，一次产出文字 + 时间线）→ 手动校准 → preview → render`。
 
-**重要规则**：`PUT /lyrics` 永远只替换歌词文本，绝不碰时间线数据。用户改歌词后需要显式点击「精确对齐」或「字数粗排」触发新计算。这是为了防止 transcribe 已产生的好时间戳被意外覆盖。
+**为什么合并成一步**：早期把「识别歌词」与「对齐时间线」拆成两次操作，理由是失败原因可控。实际使用中用户每次都要点两次、等两次，而两者的耗时几乎全部来自同一次 ASR 调用——歌词库查询和拼音对齐都在本地毫秒级完成。拆分的收益兑现不了，成本却是实打实的，因此合并。歌词库未命中时仍会完成识别，只是文字来自 ASR 原文 + LLM 断句，并在界面上提示需要手工校正。
 
-**对齐的前置条件只有一个：项目有歌词。** `align` 的远端服务自带 Demucs + 词级 ASR，只接收音频 + 歌词，不读本地 `transcriptJson`。只有降级到本地 worker（无 `REMOTE_ALIGN_URL`）时才需要先跑一次 transcribe，因为那条路径复用本地词级时间戳、没有自己的 ASR。因此「用户自己提供歌词」的场景不再被强制跑一遍识别。
+**`PUT /timeline` 只替换时间**，不碰文字；识别永远是显式触发的，不会在用户编辑过程中偷跑覆盖。
 
 ---
 
-## 5. 自动化管线（Python worker）
+## 5. 自动化管线
 
-### 5.1 MVP：歌词草稿识别（transcribe）
+### 5.1 识别：一次调用产出文字 + 时间线（transcribe）
 
-**认知前提**：唱歌 ASR 不可能 100% 准，尤其中文流行歌、混响、伴奏、人声叠加时会错词漏词。所以 MVP 不承诺“自动提取即最终歌词”，只承诺“生成可编辑草稿，减少手打成本”。
-
-```
-输入: audioPath, language(optional), vocalStart/End(optional)
-  │
-  1. ffmpeg 转 wav/mono/16k
-  │
-  2. faster-whisper transcribe（word_timestamps=True）
-  │     - 得到词级时间戳（关键产物：即使识别文字是错的，时间戳来自声学是准的）
-  │     - 同时得到 segment 文本、start/end、avg_logprob/no_speech_prob
-  │
-  3. segment → LyricLine 草稿
-  │     - 按停顿/标点/长度拆行
-  │     - startMs/endMs 直接来自 segment
-  │
-  4. 写回 LyricLine.source="transcribed" + confidence
-  │
-输出: 用户可编辑的歌词草稿 + 初始句级时间线 + 可复用词级 transcript（存入 Project.transcriptJson）
-```
-
-### 5.2 已删除：assisted（纯 JS 字符匹配）——为什么不再提供
-
-早期版本提供过一条纯 JS 的同步对齐路径（`assisted`，产出 `source="transcribed-aligned"`），做法是拿用户歌词行去本地 `transcriptJson` 的 ASR **segment** 里找字符重叠最高的那一段。实测在真实中文歌词上准确率不可接受，已连同端点、按钮与实现一起删除。删除原因记录于此，避免以后被重新实现回来：
-
-1. **字符重叠用去重集合，丢失顺序。** 打分函数把两侧文本拆成字符 `Set` 求交，因此「我爱他」与「他爱我」得分 1.0，而中文歌词里词序互换、人称互换极其常见。
-2. **重复字被折叠。** 同一个字符只计一次，「谢谢谢谢」在打分时等价于一句只有一个字的行。
-3. **单调游标不可逆。** 匹配到一段 ASR 后，游标直接跳到该段之后，永不回退。一次误命中会连带后面所有行的搜索窗口整体偏移，表现为「后半段全跑偏」而不是偶发单行错。
-4. **命中阈值过低（0.3）。** 集合重叠 30% 在 10 字以上的行里很容易碰巧达到，进一步放大了第 3 点。
-5. **精度粒度是 ASR 句子级。** 即使文字匹配对了，时间也只能取整段的起止，无法利用词级时间戳。
-
-更关键的是**它比 `weighted` 更有害**：`weighted` 的粗排结果一眼能看出是"平均分"，用户会去校准；而 assisted 会给出带 confidence 百分比、看起来很精确、实际错误的时间线，用户会误以为已经对齐好了。**看起来准确但错误的坏数据，比明显粗糙的兜底更危险。**
-
-### 5.3 兜底：字数权重粗排（weighted）
+**认知前提**：唱歌 ASR 不可能 100% 准，尤其中文流行歌、混响、伴奏、人声叠加时会错词漏词。所以不承诺「自动提取即最终歌词」，只承诺「生成可编辑草稿 + 可信的时间轴，减少手打成本」。
 
 ```
-输入: 用户确认后的歌词行 + audio duration/vocalStart/vocalEnd
+输入: audioPath, title, artist
   │
-  1. 按每行字数/词数计算权重
+  1. 并行取两个来源
+  │     a. MiniMax ASR → 逐字时间戳 + 识别文本（时长 > 500s 直接拒绝）
+  │     b. 歌词库 api.lrc.cx（按 title + artist 查询）→ 准确歌词文字，时间轴丢弃
   │
-  2. 把可用演唱时长按权重分配
+  2. 两个来源都有 → 拼音对齐（见 5.2）
+  │     歌词库未命中/匹配度过低 → 降级：ASR 原文 + LLM 断句，标记需人工校正
   │
-  3. 衔接相邻行 startMs/endMs
+  3. 写回 LyricLine + source
   │
-输出: source="weighted" 的可编辑初始时间线
+输出: 可编辑歌词行 + 句级时间线
 ```
 
-这是永不阻塞的地基：ASR 失败、align 失败、没有 GPU，都可以靠它进入编辑和渲染。
+### 5.2 拼音对齐（`web/src/lib/lyric-align.ts`）
 
-### 5.4 主路径：声学对齐（align）
-
-**认知前提**：用户已经确认歌词文本后，对齐才有意义。**前置条件只有"项目有歌词"，不需要先跑识别歌词。**
+把准确歌词映射到本录音的时间戳上。核心是**在拼音层做最长公共子序列（LCS）**：
 
 ```
-输入: audioPath, 已确认歌词行 [{index, text}], vocalStart/End(optional)
+输入: ASR units（逐字时间戳）, 歌词库行
   │
-  1. Demucs 分离人声（可选增强）
+  1. cjkOnly: 两侧都只保留 CJK 字符，标点/拉丁文不参与索引
   │
-  2. faster-whisper 词级 ASR（Demucs 生效时对分离人声与原音频各跑一遍，按词数/覆盖率/置信度选优）
+  2. toPinyin: pinyin-pro 转拼音，一字一音节
+  │     —— 简繁在此自然统一（听/聽 同为 ting）
   │
-  3. pypinyin + rapidfuzz 单调窗口匹配：整词序列滑窗，ratio/partial_ratio 混合覆盖度与长度惩罚
+  3. alignByPinyin: 动态规划求 LCS，得到「ASR 下标 → 歌词下标」的单调映射
+  │     未命中的间隙在锚点之间线性插值
   │
-  4. 每行算 confidence，低于阈值或整体覆盖率不足时退化为按时长的比例分配
+  4. 整体匹配率 < 50% → 判定不是同一首，放弃（返回原因，走降级）
   │
-  5. 写库前过质量门（行数下限、零时长比例、时间单调性、高置信度短匹配假阳性）
+  5. 命中歌词下标按行分桶，ASR 字符的首尾时间即该行时间
+  │     某行被唱到的字符不足该行字数一半 → 丢弃（对应本录音没唱的部分）
   │
-输出: source="aligned" 的句级时间线（异步 job，分钟级）
+输出: 行级时间线
 ```
 
-**部署形态**：两条可互换的实现，按 `REMOTE_ALIGN_URL` 是否配置切换。
+**为什么必须单调**：LCS 映射天然单调，重复段落（副歌）不会把后面所有行带偏。早年字符集合重叠的做法不具备这个性质，一次误命中会污染后续所有行——见 §5.4。
 
-- **远端服务（推荐）**：`REMOTE_ALIGN_URL` 指向一个自带 Demucs + faster-whisper 的 FastAPI 服务。只接收 `file` + `lyrics_json`（+ 可选 `audio_duration_ms`），**不读本地 `transcriptJson`**，因此本地是否跑过 transcribe 完全不影响结果。
-- **本地 worker（降级）**：未配置 `REMOTE_ALIGN_URL` 时创建 `Job(type="align", status="queued")`，由 `worker/main.py` 取走。这条路径复用本地 `transcriptJson` 的词级时间戳、自身不做 ASR，因此**必须**先跑过一次识别歌词；守卫会返回 400 并说明原因。
+**匹配率门槛的作用**：用户可能翻唱的是另一首歌、或歌词库查错了。低于 50% 直接放弃而不是硬凑，因为「看起来对齐好了但全是错的」比「明确告诉用户没匹配上」更有害。
 
-前端的「精确对齐」按钮对两种形态是同一个入口，按 job 状态轮询。
+### 5.3 降级：LLM 断句
 
-**降级策略（永不阻塞）**：
+歌词库未命中，或匹配率低于门槛时：
 
 ```
-align 失败 / 服务不可达 / 用户跳过 → 前端提示，用户可点 weighted 兜底
-无歌词 → 提示先粘贴歌词或跑一次识别歌词（无论哪条对齐路径都需要歌词）
-本地 worker 路径且无 transcriptJson → 400，提示先跑识别歌词
-weighted → 永不失败，保证任何环境下都能进入编辑和渲染
-render 失败 → 保留项目和时间线，允许重试
+输入: ASR 识别文本 + 音频时长
+  │
+  1. MiniMax 文本模型按语义断行（原 ASR 文本无换行）
+  │
+  2. 时间按断句结果的比例分配
+  │
+  3. 界面提示：歌词来自语音识别，可能有错字，请在时间线里校正
+  │
+输出: 可编辑歌词行 + 时间线（source="transcribed"）
 ```
 
-worker 与 web 的接口：worker 轮询 `Job(type in ["transcribe", "align"], status="queued")`，干完写回 DB。web 不直接耦合 Python 服务。
+识别本身不会失败，只是质量降一档，并且**明确告知用户降级了**。
 
-**两条路径的质量对比**：
+### 5.4 已删除的路径——为什么不再提供
 
-| 路径 | 时间源 | 文字源 | 质量 | 速度 | 依赖 |
-|---|---|---|---|---|---|
-| weighted | 字数猜测 | 用户正确歌词 | ★★ | 毫秒 | 无 |
-| align（远端） | 声学真实（词级）+ 人声分离 + 双路 ASR 择优 | 用户正确歌词 | ★★★★★ | 分钟级 | 远端服务（建议 GPU） |
-| align（本地 worker） | 声学真实（词级，复用 transcribe 结果） | 用户正确歌词 | ★★★ | 分钟级 | 先跑 transcribe；CPU 可跑 |
+以下实现曾经存在，现已连同端点、按钮、依赖一起删除。记录于此，避免以后被重新实现回来。
 
-`align` 是唯一推荐的对齐方式，`weighted` 是永不失败的兜底。二者之间不再有第三条路径——曾经的 `assisted` 已删除，原因见 §5.2。
+| 已删除 | 原做法 | 删除原因 |
+|---|---|---|
+| **assisted**（字符匹配对齐） | 拿歌词行去 ASR segment 里找字符重叠最高的一段 | 用去重字符 `Set` 求交，丢失顺序：「我爱他」与「他爱我」得分相同；重复字被折叠；单调游标不可逆，一次误命中连带后续全偏；命中阈值仅 0.3 形同虚设。**它比粗排更有害**——粗排一眼看得出是平均分，它却给出带 confidence、看着精确实则错误的时间线 |
+| **weighted**（字数权重粗排） | 按每行字数把演唱时长等分 | 与 ASR 时间戳相比毫无竞争力；有 ASR 时它只是坏数据。且它让用户误以为已经对齐 |
+| **Python worker + faster-whisper** | 本地进程轮询 Job 表跑识别 | 中文歌唱场景错字多，需约 2GB 本地依赖，却仍要用户手动校正。商业 ASR 免费额度足够，质量更好 |
+| **独立 aligner 服务**（FastAPI + Demucs + 词级 ASR） | 通过 `REMOTE_ALIGN_URL` 调用的远端对齐服务 | 需 GPU、分钟级耗时、单独部署与维护，而它解决的「词级时间戳」问题，MiniMax ASR 一次调用就给了。Demucs 人声分离对最终质量的影响远小于维护成本 |
+
+**从中学到的**：分词/对齐这类问题，在**拼音层用 LCS** 与在**字符层用集合重叠**是质变而非量变。前者单调、可解释、可拒绝；后者是启发式打分的堆积，调参永远调不到可靠。
 
 ---
 
-## 6. 模板与「预览=渲染」同构（Remotion）
+## 6. 外部依赖与失败模式
+
+| 依赖 | 用途 | 失败时 |
+|---|---|---|
+| MiniMax ASR | 逐字时间戳 | 直接失败并提示；时长超 500s 提前拒绝 |
+| api.lrc.cx 歌词库 | 歌词文字 | 降级到 LLM 断句，界面提示需校正 |
+| MiniMax 文本模型 | 降级时的断句 | 用 ASR 原始分段断行 |
+
+**隐私**：音频会上传至 MiniMax；歌曲名与歌手名会发往歌词库。API Key 只存浏览器 `localStorage`，随请求头发送，不落库。
+
+---
+
+## 7. 模板与「预览=渲染」同构（Remotion）
 
 模板配置存在 `Project.template`（JSON），驱动同一个 Composition：
 
@@ -307,7 +285,7 @@ export const LyricVideo: React.FC<{lines: LyricLine[]; template: TemplateConfig}
 
 ---
 
-## 7. 两个容易踩坑的点
+## 8. 两个容易踩坑的点
 
 **A. 长歌词滚动**：参考图 15 行刚好一屏，但歌词一多必须滚。`ScrollingList` 让 `currentIdx` 始终居中：
 
@@ -321,75 +299,67 @@ const scroll = interpolate(/* spring 平滑过渡到 targetScroll */);
 
 ---
 
-## 8. 目录结构
+## 9. 目录结构
 
 ```
-singing_video/
-├─ web/                          # Next.js
-│  ├─ app/
+singing_web/my_music_generator/
+├─ web/                          # Next.js（唯一服务）
+│  ├─ src/app/
 │  │  ├─ api/                    # route handlers（§4）
-│  │  ├─ projects/[id]/page.tsx  # 编辑器主工作台
-│  ├─ components/
-│  │  ├─ AudioPlayer.tsx         # 播放/暂停/回退3s/播当前句
-│  │  ├─ LyricDraftEditor.tsx    # ASR 草稿确认/手动粘贴歌词
-│  │  ├─ TimelineList.tsx        # 句列表 + 打点 + 微调
-│  │  └─ PreviewPanel.tsx        # @remotion/player
-│  ├─ remotion/
-│  │  ├─ LyricVideo.tsx          # ★ 预览=渲染 同构组件
-│  │  ├─ Header.tsx
-│  │  └─ ScrollingList.tsx
-│  ├─ lib/
-│  │  ├─ weighted-layout.ts      # 字数权重兜底粗排
-│  │  ├─ remote-align.ts         # 远端声学对齐客户端 + 结果质量门
+│  │  └─ projects/[id]/page.tsx  # 编辑器主工作台
+│  ├─ src/components/            # 播放器、歌词编辑、时间线、设置面板
+│  ├─ src/remotion/              # ★ 预览=渲染 同构组件
+│  ├─ src/lib/
+│  │  ├─ minimax-asr.ts          # MiniMax ASR 客户端（逐字时间戳）
+│  │  ├─ minimax-llm.ts          # 降级断句用
+│  │  ├─ lrc.ts                  # 歌词库查询 + LRC 解析
+│  │  ├─ lyric-align.ts          # ★ 拼音 LCS 对齐
+│  │  ├─ lyric-rows.ts           # 行拆分/衔接
 │  │  ├─ render.ts               # @remotion/renderer 调用
-│  │  └─ lrc.ts                  # LRC 导入导出
+│  │  └─ paths.ts / store.ts     # 目录约定、状态
 │  └─ prisma/schema.prisma
-├─ worker/                       # Python
-│  ├─ main.py                    # 轮询 Job(transcribe/align)
-│  ├─ transcribe.py              # faster-whisper 歌词草稿
-│  ├─ align.py                   # 本地降级对齐（复用 transcribe 词级时间戳）
-│  └─ requirements.txt
-├─ data/                         # 共享卷：uploads / renders
+├─ data/                         # uploads / renders
+├─ docs/                         # 本文件与实施计划
+├─ assets/                       # README 截图
 └─ docker-compose.yml
 ```
 
 ---
 
-## 9. 阶段拆分（更新后）
+## 10. 阶段拆分
 
-| 阶段 | 内容 | 产出 |
+| 阶段 | 内容 | 状态 |
 |---|---|---|
-| **1. 骨架** | Next.js + Prisma + 上传 + ffprobe + 项目创建 | 能传音频建项目 |
-| **2. 歌词确认与手动时间线编辑器 ★先做** | 粘贴歌词、播放器、句列表、tap 打点、句尾自动衔接、快捷键、微调、保存 | **用户提供歌词时，纯手动也能完成一首** |
-| **3. 兜底粗排（先做，无依赖）** | `weighted-layout.ts` 字数权重 | 纯 JS，0 外部依赖，用于自测编辑器交互 |
-| **4. 竖屏预览** | `@remotion/player` + `LyricVideo` 同构组件 + 滚动 | 实时勾选预览 |
-| **5. 渲染** | `@remotion/renderer` → 1080×1920/30fps/h264 带音频 | 出 MP4 |
-| **6. ASR 歌词草稿** | Python worker：faster-whisper（word_timestamps=True）识别 + 词级时间戳 → 存入 Project.transcriptJson | 无歌词时可先生成草稿；词级时间戳供本地降级对齐复用 |
-| **7. 声学对齐 ★主路径** | 远端服务（`remote-align.ts`：Demucs + 词级 ASR + pypinyin/rapidfuzz 单调窗口匹配 + 质量门）；无 `REMOTE_ALIGN_URL` 时降级到 `worker/align.py` | **一键精准时间线** |
-| **8. LRC + 打磨** | LRC 导入导出、错误处理、空状态 | 可复用、好用 |
-| **9. 部署** | Docker Compose（web + worker + 可选 align 服务）本地或自托管 | 上线 |
+| **1. 骨架** | Next.js + Prisma + 上传 + ffprobe + 项目创建 | ✅ |
+| **2. 时间线编辑器** | 播放器、句列表、打点、微调、快捷键、保存 | ✅ |
+| **3. 竖屏预览** | `@remotion/player` + 同构组件 + 滚动 | ✅ |
+| **4. 渲染** | `@remotion/renderer` → 1080×1920/30fps/h264 带音频 | ✅ |
+| **5. 歌词识别与对齐** | MiniMax ASR + 歌词库 + 拼音 LCS，一次产出文字与时间线 | ✅ |
+| **6. 降级路径** | 歌词库未命中 → LLM 断句 + 界面提示 | ✅ |
+| **7. 收敛与清理** | 删除 worker / aligner / 远端对齐 / 粗排 / 字数对齐 | ✅ |
+| **8. 部署** | Docker Compose（单 web 服务）本地或自托管 | 待做 |
 
-**MVP 验收边界**：包含 **phase 1-7**。phase 1-5 是「骨架/手工可用版」，可手动完成一首；phase 6 让「无歌词也能起步」，phase 7 让「一键精准时间线」成为现实。做完 phase 5 不视为 MVP 完成。
+**已交付**：上传音频 → 一键识别 → 得到带错字提示的歌词与时间线 → 手动校准 → 预览 → 导出 MP4，全流程可用，无本地 ML 依赖。
 
-**关键调整（v3.1）**：删除 phase 7 原定的 `transcribe-assisted`（纯 JS 路径）。它拿用户歌词去 ASR segment 里做去重字符集重叠匹配，实测中文歌词准确率不可接受，且单调游标不可逆会让一次误命中污染后续所有行。现在 `align` 直接作为主路径——**它的前置条件只有"有歌词"**，远端服务自带 Demucs + 词级 ASR，不读本地 `transcriptJson`。`weighted` 保持纯兜底。详细原因见 §5.2。
+**尚未做**：LRC 导入导出（用户劳动成果复用）、多用户、Postgres。
 
 ---
 
-## 10. 风险与预案
+## 11. 风险与预案
 
 | 风险 | 预案 |
 |---|---|
-| 唱歌 ASR 错词漏词 | ASR 文字只作为草稿，不要求准确；对齐以用户提供的正确歌词为准，靠拼音模糊匹配定位声学时间 |
-| align 服务不可达 / 超时 | job 标 failed 并保留错误信息；前端提示用户改点 weighted 兜底，全流程仍可完成 |
-| 用户自带歌词却被强制跑识别 | 已修正：守卫改为"项目是否有歌词"，远端对齐不再要求 `transcriptJson`；只有本地降级路径才需要先跑 transcribe |
-| PUT /lyrics 误覆盖好时间戳 | PUT /lyrics 不再自动触发任何时间线计算；时间线生成始终是用户的显式操作 |
-| **无 GPU** | 本地 worker 路径 CPU int8 可跑（慢但能跑）；或直接跑远端服务；两条都不可用时 weighted 兜底 |
-| 对齐质量差 | 写库前过质量门（行数下限、零时长比例、时间单调性、高置信度短匹配假阳性）；低置信行标红引导校准；永远保留手动打点 |
-| Remotion 渲染慢（5400 帧） | MVP 接受；以后量产再评估 ffmpeg+ASS 路线 |
-| SQLite 并发 | MVP 单用户够；多用户再换 Postgres（Prisma 零成本切） |
+| 唱歌 ASR 错词漏词 | ASR 文字只作草稿；歌词库命中时文字来自歌词库，未命中时明确提示需校正 |
+| 歌词库查错歌 / 用户翻唱别的歌 | 拼音匹配率低于 50% 直接放弃并降级，不硬凑 |
+| MiniMax 不可用或超时 | job 标 failed 并保留错误信息；音源与项目数据不受影响，可重试 |
+| 音频超过 500 秒 | 调用前用 ffprobe 的时长提前拒绝，不浪费一次上传 |
+| API Key 泄漏 | 只存浏览器 `localStorage`，不落库、不进日志；服务端仅透传 |
+| 对齐质量差 | 低匹配率的行不产出，界面提示需人工校正；永远保留手动打点 |
+| Remotion 渲染慢（5400 帧） | 当前接受；量产再评估 ffmpeg + ASS 路线 |
+| SQLite 并发 | 单用户够；多用户再换 Postgres（Prisma 零成本切） |
 
 ---
 
 ## 附：成功标准
 
-第一版成功的标准：用户上传音频后，粘贴歌词并点击「精确对齐」→ 声学对齐跑出一版准确的时间线。用户只需听一遍确认，少数不匹配行手动微调，即可生成节奏正确、预览与导出一致的 9:16 竖屏歌词 todo 视频。如果没有歌词，先用 ASR 生成草稿再确认，流程同样顺畅；如果对齐服务不可用，点「字数粗排」也能拿到一版可编辑的初稿，全流程不阻塞。
+用户上传音频后点一次「识别歌词」，得到一版歌词基本正确、时间轴对得上演唱的时间线。用户听一遍确认，少数行手动微调，即可生成节奏正确、预览与导出一致的 9:16 竖屏歌词视频。歌词库没命中时也能拿到带错字提示的草稿，全流程不阻塞。

@@ -23,7 +23,6 @@ export interface Project {
   templateConfig: string | null;
   template: string | null;
   singer: string | null;
-  transcriptJson: string | null;
   createdAt: string;
   updatedAt: string;
   lines: LyricLine[];
