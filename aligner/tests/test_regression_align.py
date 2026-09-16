@@ -75,6 +75,48 @@ class ShortFragmentRegressionTests(unittest.TestCase):
         self.assertGreater(result[1]["confidence"], 0.45)
         self.assertLessEqual(result[0]["endMs"], result[1]["endMs"])
 
+    def test_partial_coverage_keeps_matched_lines(self) -> None:
+        """Falling below the coverage threshold must fill gaps, not discard matches.
+
+        Two of five lines match (0.4 < FALLBACK_MIN_VALID_RATIO), which used to
+        trigger a whole-song proportional rewrite that threw away the two exact
+        timestamps along with everything else.
+        """
+        words = _make_words([
+            ("a", 0, 100),
+            ("b", 100, 200),
+            ("hello", 300, 600),
+            ("world", 600, 900),
+            ("x", 1000, 1100),
+        ])
+        lyrics = ["zzz", "yyy", "hello world", "qqq", "www"]
+        result = aligned_to_dicts(
+            align_lyrics_to_words(words=words, lyrics=lyrics, audio_duration_ms=5000)
+        )
+        self.assertEqual(len(result), 5)
+
+        # The one line that genuinely matched keeps its acoustic timestamps.
+        self.assertEqual(result[2]["startMs"], 300)
+        self.assertEqual(result[2]["endMs"], 900)
+        self.assertEqual(result[2]["matchedText"], "helloworld")
+        self.assertGreater(result[2]["confidence"], 0.45)
+
+        # Everything else is filled so the timeline stays gap-free.
+        for line in result:
+            self.assertGreater(line["endMs"], line["startMs"])
+
+    def test_all_lines_unmatched_still_falls_back(self) -> None:
+        """When nothing matches, every line is still filled proportionally."""
+        words = _make_words([("a", 0, 100), ("b", 100, 200)])
+        lyrics = ["zzz", "yyy", "qqq"]
+        result = aligned_to_dicts(
+            align_lyrics_to_words(words=words, lyrics=lyrics, audio_duration_ms=5000)
+        )
+        self.assertEqual(len(result), 3)
+        for line in result:
+            self.assertGreater(line["endMs"], line["startMs"])
+            self.assertEqual(line["matchedText"], "")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

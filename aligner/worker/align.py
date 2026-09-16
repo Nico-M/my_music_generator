@@ -195,13 +195,27 @@ def align_lyrics_to_words(
         # the portion ASR managed to transcribe
         _fb_first_ms = raw_times[0][0] if raw_times else 0
         _fb_last_ms = audio_duration_ms if audio_duration_ms and audio_duration_ms > _fb_first_ms else (raw_times[-1][1] if len(raw_times) > 1 else raw_times[0][1])
-        aligned = _proportional_fallback(
+        fallback = _proportional_fallback(
             lyrics=lyrics,
             words=words,
             first_ms=_fb_first_ms,
             last_ms=_fb_last_ms,
             on_log=on_log,
         )
+
+        # The fallback is a whole-song estimate, so it must only fill the
+        # lines greedy left empty — never overwrite a genuine acoustic match.
+        # Without this, one unmatched line out of two drops coverage to 0.5,
+        # trips the threshold, and silently discards the other line's exact
+        # timestamps in favour of an even split.
+        preserved = 0
+        for i, prev in enumerate(aligned):
+            if i < len(fallback) and prev.confidence > FALLBACK_MAX_CONFIDENCE and prev.startMs < prev.endMs:
+                fallback[i] = prev
+                preserved += 1
+        if on_log and preserved:
+            on_log(f"proportional fallback kept {preserved} matched line(s)")
+        aligned = fallback
 
     return aligned
 
