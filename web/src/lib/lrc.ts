@@ -1,4 +1,4 @@
-import { LRC_API_URL } from '@/lib/ai-settings';
+import { LRC_API_URL, COVER_API_URL } from '@/lib/ai-settings';
 
 export interface LrcLine {
   /** Text with the timestamp and any structure tags removed. */
@@ -91,4 +91,39 @@ export async function fetchLrc(
   }
 
   return { ok: true, result: { lines, raw } };
+}
+
+/**
+ * Fetch album cover artwork from api.lrc.cx.
+ * The endpoint returns 301/302 redirecting to the image CDN URL.
+ */
+export async function fetchCover(
+  title: string,
+  artist?: string | null,
+): Promise<string | null> {
+  if (!title.trim()) return null;
+
+  const url = `${COVER_API_URL}?title=${encodeURIComponent(title.trim())}${
+    artist?.trim() ? `&artist=${encodeURIComponent(artist.trim())}` : ''
+  }`;
+
+  try {
+    const res = await fetch(url, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (res.status === 301 || res.status === 302) {
+      const loc = res.headers.get('location');
+      if (loc) return loc;
+    }
+
+    if (res.ok && res.url && res.url !== url) {
+      return res.url;
+    }
+  } catch (err) {
+    console.warn('[fetchCover] error:', err);
+  }
+
+  return null;
 }

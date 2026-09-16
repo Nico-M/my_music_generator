@@ -12,7 +12,8 @@ export const NotesTemplate: React.FC<TemplateRenderProps<NotesTemplateConfig>> =
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const state = getActiveLineState(data.lines, (frame / fps) * 1000);
+  const currentTimeMs = (frame / fps) * 1000;
+  const state = getActiveLineState(data.lines, currentTimeMs);
 
   return (
     <div
@@ -26,7 +27,13 @@ export const NotesTemplate: React.FC<TemplateRenderProps<NotesTemplateConfig>> =
       }}
     >
       <Header title={data.title} username={data.creatorName ?? undefined} singer={data.singer ?? undefined} />
-      <ScrollingList lines={data.lines} currentIdx={state.currentIndex} showCheckbox={config.showCheckbox} />
+      <ScrollingList
+        lines={data.lines}
+        currentIdx={state.currentIndex}
+        lastStartedIdx={state.lastStartedIndex}
+        currentTimeMs={currentTimeMs}
+        showCheckbox={config.showCheckbox}
+      />
     </div>
   );
 };

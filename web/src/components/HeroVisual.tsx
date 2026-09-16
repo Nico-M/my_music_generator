@@ -33,9 +33,9 @@ export default function HeroVisual() {
     >
       <defs>
         <linearGradient id="waveGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#22c55e" stopOpacity={0.8} />
-          <stop offset="50%" stopColor="#06b6d4" stopOpacity={0.5} />
-          <stop offset="100%" stopColor="#22c55e" stopOpacity={0.2} />
+          <stop offset="0%" stopColor="#4648d4" stopOpacity={0.85} />
+          <stop offset="50%" stopColor="#0ea5e9" stopOpacity={0.6} />
+          <stop offset="100%" stopColor="#4648d4" stopOpacity={0.2} />
         </linearGradient>
         <filter id="glow">
           <feGaussianBlur stdDeviation="2" result="blur" />
@@ -135,10 +135,10 @@ export default function HeroVisual() {
         {/* Wave line across ticks */}
         <path
           d="M26,215 Q50,205 74,215 Q98,225 122,215 Q146,205 170,215 Q194,225 218,215 Q242,205 266,215 Q290,225 314,215 Q338,205 362,215"
-          stroke="#06b6d4"
+          stroke="#0ea5e9"
           strokeWidth={1.2}
           fill="none"
-          opacity={0.5}
+          opacity={0.6}
         >
           <animate
             attributeName="d"
@@ -150,35 +150,35 @@ export default function HeroVisual() {
       </g>
 
       {/* ── Caption blocks ── */}
-      <g opacity={0.6}>
+      <g opacity={0.85}>
         {/* Caption 1 - active */}
-        <rect x={20} y={248} width={160} height={18} rx={4} fill="#22c55e" fillOpacity={0.2} />
-        <rect x={22} y={250} width={4} height={14} rx={2} fill="#22c55e" />
-        <text x={32} y={261} fill="#f8fafc" fontSize={9} fontFamily="Poppins, sans-serif" opacity={0.8}>
+        <rect x={20} y={248} width={160} height={18} rx={4} fill="#e1e0ff" fillOpacity={0.7} />
+        <rect x={22} y={250} width={4} height={14} rx={2} fill="#4648d4" />
+        <text x={32} y={261} fill="#4648d4" fontWeight="600" fontSize={9} fontFamily="Plus Jakarta Sans, sans-serif" opacity={0.95}>
           Hello from the other side
         </text>
         <animate
           attributeName="opacity"
-          values="0.6;1;0.6"
+          values="0.8;1;0.8"
           dur="5s"
           repeatCount="indefinite"
         />
 
         {/* Caption 2 - upcoming */}
-        <rect x={190} y={248} width={170} height={18} rx={4} fill="#06b6d4" fillOpacity={0.12} />
-        <text x={198} y={261} fill="#94a3b8" fontSize={9} fontFamily="Poppins, sans-serif">
+        <rect x={190} y={248} width={170} height={18} rx={4} fill="#e2e7ff" fillOpacity={0.6} />
+        <text x={198} y={261} fill="#464554" fontSize={9} fontFamily="Plus Jakarta Sans, sans-serif">
           I must have called a thousand times
         </text>
 
         {/* Caption 3 - future */}
-        <rect x={190} y={272} width={150} height={16} rx={4} fill="#2a3142" fillOpacity={0.3} />
-        <text x={198} y={284} fill="#475569" fontSize={8} fontFamily="Poppins, sans-serif">
+        <rect x={190} y={272} width={150} height={16} rx={4} fill="#f2f3ff" fillOpacity={0.8} />
+        <text x={198} y={284} fill="#767586" fontSize={8} fontFamily="Plus Jakarta Sans, sans-serif">
           To tell you I&apos;m sorry...
         </text>
       </g>
 
       {/* ── Playhead indicator ── */}
-      <line x1={68} y1={28} x2={68} y2={240} stroke="#ff2d75" strokeWidth={1.5} opacity={0.5} strokeDasharray="3 3">
+      <line x1={68} y1={28} x2={68} y2={240} stroke="#dc2c4f" strokeWidth={1.5} opacity={0.6} strokeDasharray="3 3">
         <animate
           attributeName="x1"
           values="68;320;68"

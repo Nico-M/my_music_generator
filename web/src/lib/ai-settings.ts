@@ -20,6 +20,9 @@ export const MINIMAX_LLM_URL = 'https://api.minimax.cn/v1/chat/completions';
 /** Public lyrics library used to obtain accurate lyric text. */
 export const LRC_API_URL = 'https://api.lrc.cx/lyrics';
 
+/** Public cover library used to obtain song artwork. */
+export const COVER_API_URL = 'https://api.lrc.cx/cover';
+
 /** MiniMax rejects audio longer than this with a 400 (it does not truncate). */
 export const MAX_AUDIO_DURATION_MS = 500_000;
 

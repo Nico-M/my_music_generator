@@ -21,7 +21,7 @@ import { UPLOADS_DIR } from '@/lib/paths';
 import { transcribeWithMiniMax } from '@/lib/minimax-asr';
 import { punctuateLyrics } from '@/lib/minimax-llm';
 import { buildRowsFromPunctuation, singleRowFromUnits } from '@/lib/lyric-rows';
-import { fetchLrc } from '@/lib/lrc';
+import { fetchLrc, fetchCover } from '@/lib/lrc';
 import { alignLrcToAsr } from '@/lib/lyric-align';
 import { MAX_AUDIO_BYTES, MAX_AUDIO_DURATION_MS } from '@/lib/ai-settings';
 
@@ -101,7 +101,13 @@ export async function POST(
     let rows: Array<{ text: string; startMs: number; endMs: number }> | null = null;
     let notice: TranscribeNotice | undefined;
 
-    const lrc = await fetchLrc(project.title, project.singer);
+    const [lrc, coverUrl] = await Promise.all([
+      fetchLrc(project.title, project.singer),
+      fetchCover(project.title, project.singer),
+    ]);
+    if (coverUrl) {
+      console.log(`[transcribe] Cover artwork found: ${coverUrl}`);
+    }
 
     if (lrc.ok) {
       const result = alignLrcToAsr(units, lrc.result.lines);
@@ -156,7 +162,7 @@ export async function POST(
         rows.map((r, i) => `  ${i}: ${r.startMs}-${r.endMs}  ${r.text}`).join('\n'),
     );
 
-    await prisma.$transaction([
+    const dbOps: any[] = [
       prisma.lyricLine.deleteMany({ where: { projectId: id } }),
       prisma.lyricLine.createMany({
         data: rows.map((row, index) => ({
@@ -172,9 +178,20 @@ export async function POST(
         where: { id: job.id },
         data: { status: 'done', params: notice ? JSON.stringify({ notice }) : null },
       }),
-    ]);
+    ];
 
-    return NextResponse.json({ jobId: job.id, rows: rows.length, aligned, notice });
+    if (coverUrl) {
+      dbOps.push(
+        prisma.project.update({
+          where: { id },
+          data: { coverUrl },
+        }),
+      );
+    }
+
+    await prisma.$transaction(dbOps);
+
+    return NextResponse.json({ jobId: job.id, rows: rows.length, aligned, notice, coverUrl });
   } catch (err) {
     console.error('Transcribe error:', err);
     await prisma.job.update({

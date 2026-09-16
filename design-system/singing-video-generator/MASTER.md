@@ -1,4 +1,4 @@
-# Design System Master File
+# Design System Master File — Kinetic Luster Edition
 
 > **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.
 > If that file exists, its rules **override** this Master file.
@@ -6,9 +6,10 @@
 
 ---
 
-**Project:** Singing Video Generator
-**Generated:** 2026-06-30 15:00:33
-**Category:** Productivity Tool
+**Project:** VocalBeat AI / Singing Video Generator  
+**Design System:** Kinetic Luster (`asset-stub-assets_bcf45a5090fd4f8a995c8063c258181d`)  
+**Theme:** Light Porcelain & Electric Violet Studio  
+**Aesthetic:** Airy Luminance, Zero-Gravity White Canvas, Electric Precision Accents  
 
 ---
 
@@ -16,187 +17,115 @@
 
 ### Color Palette
 
-| Role | Hex | CSS Variable |
-|------|-----|--------------|
-| Primary | `#0F172A` | `--color-primary` |
-| Secondary | `#1E293B` | `--color-secondary` |
-| CTA/Accent | `#22C55E` | `--color-cta` |
-| Background | `#020617` | `--color-background` |
-| Text | `#F8FAFC` | `--color-text` |
+| Role | Hex | CSS Variable | Usage |
+|------|-----|--------------|-------|
+| Background Canvas | `#FAF8FF` | `--color-bg` | Airy light background canvas |
+| Surface (Pure White) | `#FFFFFF` | `--color-surface` | Primary cards, panels, modals |
+| Surface Low (Porcelain) | `#F2F3FF` | `--color-surface-2` | Secondary containers, inactive tabs, wells |
+| Surface Container | `#EAEDFF` | `--color-surface-container` | Active tabs, pill chips |
+| Surface High | `#E2E7FF` | `--color-surface-high` | Badges, highlighted chips |
+| Border / Outline | `#E2E8F0` | `--color-border` | Clean hairline dividers and strokes |
+| Text Primary | `#131B2E` | `--color-text` | Deep navy-slate, crisp 4.5:1+ contrast |
+| Text Muted | `#464554` | `--color-text-muted` | Secondary descriptions and subtitles |
+| Text Subtle | `#767586` | `--color-text-subtle` | Micro labels, timestamps, placeholders |
+| Primary (Electric Violet) | `#4648D4` | `--color-primary` | Main CTAs, selected states, key indicators |
+| Primary Light | `#6063EE` | `--color-primary-light` | Primary button hover |
+| Secondary (Coral Rose) | `#DC2C4F` | `--color-secondary` | High-energy badges, beat markers, hot tags |
+| Accent / Tertiary (Sky Cyan)| `#0EA5E9` | `--color-accent` | Waveforms, playhead accents, auxiliary glows |
+| Danger / Error | `#BA1A1A` | `--color-danger` | Destructive actions, error alerts |
+| Warning | `#F59E0B` | `--color-warning` | Warning tags and status |
 
-**Color Notes:** Dark bg + green positive indicators
+---
 
 ### Typography
 
-- **Heading Font:** Fira Code
-- **Body Font:** Fira Sans
-- **Mood:** dashboard, data, analytics, code, technical, precise
-- **Google Fonts:** [Fira Code + Fira Sans](https://fonts.google.com/share?selection.family=Fira+Code:wght@400;500;600;700|Fira+Sans:wght@300;400;500;600;700)
+- **Primary Font:** Plus Jakarta Sans
+- **Headline Font:** Plus Jakarta Sans
+- **Mono / Code Font:** Fira Code
+- **Mood:** Modern, crisp, airy, energetic, creator-focused, effortless
+- **Google Fonts:** `https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap`
 
-**CSS Import:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
-```
+---
 
 ### Spacing Variables
 
 | Token | Value | Usage |
 |-------|-------|-------|
-| `--space-xs` | `4px` / `0.25rem` | Tight gaps |
+| `--space-xs` | `4px` / `0.25rem` | Micro gaps, chip paddings |
 | `--space-sm` | `8px` / `0.5rem` | Icon gaps, inline spacing |
 | `--space-md` | `16px` / `1rem` | Standard padding |
 | `--space-lg` | `24px` / `1.5rem` | Section padding |
-| `--space-xl` | `32px` / `2rem` | Large gaps |
-| `--space-2xl` | `48px` / `3rem` | Section margins |
-| `--space-3xl` | `64px` / `4rem` | Hero padding |
+| `--space-xl` | `32px` / `2rem` | Container gaps |
+| `--space-2xl` | `48px` / `3rem` | Hero padding |
 
-### Shadow Depths
+---
+
+### Elevation & Depth
 
 | Level | Value | Usage |
 |-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
-| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
+| Surface Tier 0 | None (flat `#FAF8FF`) | Main page canvas |
+| Surface Tier 1 | `#F2F3FF` + `#E2E8F0` border | Recessed controls, audio well |
+| Surface Tier 2 | `0 1px 4px rgba(70,72,212,0.05), 0 1px 2px rgba(19,27,46,0.04)` | Cards, floating panels |
+| Surface Hover | `0 8px 24px -4px rgba(70,72,212,0.12)` | Card hovers |
+| Primary Glow | `0 2px 8px rgba(70,72,212,0.25)` | Primary CTAs |
 
 ---
 
 ## Component Specs
 
-### Buttons
-
+### Primary Button
 ```css
-/* Primary Button */
 .btn-primary {
-  background: #22C55E;
-  color: white;
-  padding: 12px 24px;
+  background: #4648D4;
+  color: #FFFFFF;
+  padding: 10px 20px;
   border-radius: 8px;
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(70, 72, 212, 0.25);
   transition: all 200ms ease;
   cursor: pointer;
 }
-
 .btn-primary:hover {
-  opacity: 0.9;
+  background: #6063EE;
   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(70, 72, 212, 0.35);
 }
+```
 
-/* Secondary Button */
+### Secondary Button
+```css
 .btn-secondary {
-  background: transparent;
-  color: #0F172A;
-  border: 2px solid #0F172A;
-  padding: 12px 24px;
+  background: #FFFFFF;
+  color: #131B2E;
+  border: 1px solid #E2E8F0;
+  padding: 10px 20px;
   border-radius: 8px;
-  font-weight: 600;
+  font-weight: 500;
   transition: all 200ms ease;
   cursor: pointer;
+}
+.btn-secondary:hover {
+  color: #4648D4;
+  border-color: #4648D4;
+  background: #F2F3FF;
 }
 ```
 
 ### Cards
-
 ```css
 .card {
-  background: #020617;
+  background: #FFFFFF;
   border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--shadow-md);
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 1px 4px rgba(70, 72, 212, 0.05);
   transition: all 200ms ease;
   cursor: pointer;
 }
-
 .card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  border-color: #E1E0FF;
+  background: #F5F6FF;
+  box-shadow: 0 8px 24px -4px rgba(70, 72, 212, 0.12);
+  transform: translateY(-1px);
 }
 ```
-
-### Inputs
-
-```css
-.input {
-  padding: 12px 16px;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 200ms ease;
-}
-
-.input:focus {
-  border-color: #0F172A;
-  outline: none;
-  box-shadow: 0 0 0 3px #0F172A20;
-}
-```
-
-### Modals
-
-```css
-.modal-overlay {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: var(--shadow-xl);
-  max-width: 500px;
-  width: 90%;
-}
-```
-
----
-
-## Style Guidelines
-
-**Style:** Micro-interactions
-
-**Keywords:** Small animations, gesture-based, tactile feedback, subtle animations, contextual interactions, responsive
-
-**Best For:** Mobile apps, touchscreen UIs, productivity tools, user-friendly, consumer apps, interactive components
-
-**Key Effects:** Small hover (50-100ms), loading spinners, success/error state anim, gesture-triggered (swipe/pinch), haptic
-
-### Page Pattern
-
-**Pattern Name:** Interactive Demo + Feature-Rich
-
-- **CTA Placement:** Above fold
-- **Section Order:** Hero > Features > CTA
-
----
-
-## Anti-Patterns (Do NOT Use)
-
-- ❌ Complex onboarding
-- ❌ Slow performance
-
-### Additional Forbidden Patterns
-
-- ❌ **Emojis as icons** — Use SVG icons (Heroicons, Lucide, Simple Icons)
-- ❌ **Missing cursor:pointer** — All clickable elements must have cursor:pointer
-- ❌ **Layout-shifting hovers** — Avoid scale transforms that shift layout
-- ❌ **Low contrast text** — Maintain 4.5:1 minimum contrast ratio
-- ❌ **Instant state changes** — Always use transitions (150-300ms)
-- ❌ **Invisible focus states** — Focus states must be visible for a11y
-
----
-
-## Pre-Delivery Checklist
-
-Before delivering any UI code, verify:
-
-- [ ] No emojis used as icons (use SVG instead)
-- [ ] All icons from consistent icon set (Heroicons/Lucide)
-- [ ] `cursor-pointer` on all clickable elements
-- [ ] Hover states with smooth transitions (150-300ms)
-- [ ] Light mode: text contrast 4.5:1 minimum
-- [ ] Focus states visible for keyboard navigation
-- [ ] `prefers-reduced-motion` respected
-- [ ] Responsive: 375px, 768px, 1024px, 1440px
-- [ ] No content hidden behind fixed navbars
-- [ ] No horizontal scroll on mobile

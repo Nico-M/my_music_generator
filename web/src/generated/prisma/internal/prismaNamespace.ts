@@ -677,6 +677,7 @@ export const ProjectScalarFieldEnum = {
   template: 'template',
   singer: 'singer',
   manualLyrics: 'manualLyrics',
+  coverUrl: 'coverUrl',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

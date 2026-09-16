@@ -186,3 +186,16 @@ export function X(props: IconProps) {
     </FilledIcon>
   );
 }
+
+export function Trash2(props: IconProps) {
+  return (
+    <StrokedIcon strokeWidth={32} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <line x1="80" y1="112" x2="432" y2="112" />
+      <path d="M192,112V72a24,24,0,0,1,24-24h80a24,24,0,0,1,24,24v40" />
+      <path d="M112,112l20,300a32,32,0,0,0,32,30H348a32,32,0,0,0,32-30l20-300" />
+      <line x1="208" y1="192" x2="208" y2="368" />
+      <line x1="256" y1="192" x2="256" y2="368" />
+      <line x1="304" y1="192" x2="304" y2="368" />
+    </StrokedIcon>
+  );
+}
