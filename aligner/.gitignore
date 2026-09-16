@@ -1,0 +1,15 @@
+# ── Python virtualenv ────────────────────────────────────────────────
+.venv/
+__pycache__/
+*.pyc
+
+# ── Runtime state (never commit) ─────────────────────────────────────
+# Demucs/whisper model cache + per-job snapshots. Regenerated on first run.
+cache/
+
+# Runtime artifacts
+server.log
+server.pid
+
+# ── OS ───────────────────────────────────────────────────────────────
+.DS_Store

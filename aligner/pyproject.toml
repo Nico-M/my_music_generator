@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "singing-aligner"
+version = "0.1.0"
+description = "Remote audio-to-lyrics alignment service (Demucs + faster-whisper + monotonic match)"
+requires-python = ">=3.10"
+readme = "README.md"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "python-multipart>=0.0.12",
+  "pydantic>=2.9",
+  "soundfile>=0.12",
+  "numpy>=1.26",
+  "faster-whisper>=1.0.3",
+  "pypinyin>=0.53",
+  "rapidfuzz>=3.10",
+  "python-Levenshtein>=0.26",
+]
+
+[project.optional-dependencies]
+demucs = [
+  "demucs>=4.0.1",
+]
+# torch/torchaudio are intentionally NOT pinned here — install manually per platform.
+# See README.
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*", "worker*"]
