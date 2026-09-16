@@ -89,14 +89,11 @@ export const messages = {
     jobs: {
       transcribe: '歌词识别',
       render: '视频渲染',
-      align: '精确对齐',
       queued: '排队中...',
       processing: '处理中...',
       done: '完成',
       failed: '失败：{error}',
       complete: '完成',
-      alignMatched: '声学匹配 {matched}/{total} 行',
-      alignProportional: '比例兜底（ASR 覆盖率不足，建议手动校准）',
     },
     common: {
       back: '返回',
@@ -209,14 +206,11 @@ export const messages = {
     jobs: {
       transcribe: 'Transcribe',
       render: 'Render',
-      align: 'Align',
       queued: 'Queued...',
       processing: 'Processing...',
       done: 'Done',
       failed: 'Failed: {error}',
       complete: 'Complete',
-      alignMatched: 'Acoustic match {matched}/{total} lines',
-      alignProportional: 'Proportional fallback (ASR coverage too low — check manually)',
     },
     common: {
       back: 'Back',

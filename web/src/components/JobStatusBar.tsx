@@ -51,14 +51,7 @@ export default function JobStatusBar({ activeJobs, finishedJobs, onDismiss }: Jo
           <span className="flex-1" style={{ color: job.status === 'done' ? 'var(--color-text-subtle)' : 'var(--color-danger)' }}>
             {job.status !== 'done'
               ? (job.error || t('jobs.failed', { error: '' }).replace(': ', ''))
-              : job.alignDetail?.alignmentMethod === 'proportional_fallback'
-                ? t('jobs.alignProportional')
-                : job.alignDetail?.alignmentMethod === 'fuzzy_greedy'
-                  ? t('jobs.alignMatched', {
-                      matched: String(job.alignDetail.matchedLines ?? 0),
-                      total: String(job.alignDetail.totalLines ?? 0),
-                    })
-                  : t('jobs.complete')}
+              : t('jobs.complete')}
           </span>
           <button
             onClick={() => onDismiss(job.jobId)}

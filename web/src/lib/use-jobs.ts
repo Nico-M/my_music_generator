@@ -4,38 +4,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface TrackedJob {
   jobId: string;
-  type: 'transcribe' | 'render' | 'align';
+  type: 'transcribe' | 'render';
   status: 'queued' | 'running' | 'done' | 'failed';
   error?: string;
   resultPath?: string;
-  /** How the remote aligner actually matched, for `align` jobs only. */
-  alignDetail?: AlignDetail;
-}
-
-/** Outcome metadata reported by the aligner for a finished alignment. */
-export interface AlignDetail {
-  alignmentMethod?: 'fuzzy_greedy' | 'proportional_fallback';
-  matchedLines?: number;
-  totalLines?: number;
-}
-
-function parseAlignDetail(params: unknown): AlignDetail | undefined {
-  if (typeof params !== 'string') return undefined;
-  try {
-    const parsed = JSON.parse(params) as Record<string, unknown>;
-    const detail: AlignDetail = {};
-    if (
-      parsed.alignmentMethod === 'fuzzy_greedy' ||
-      parsed.alignmentMethod === 'proportional_fallback'
-    ) {
-      detail.alignmentMethod = parsed.alignmentMethod;
-    }
-    if (typeof parsed.matchedLines === 'number') detail.matchedLines = parsed.matchedLines;
-    if (typeof parsed.totalLines === 'number') detail.totalLines = parsed.totalLines;
-    return Object.keys(detail).length > 0 ? detail : undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 /**
@@ -61,7 +33,6 @@ export function useJobs() {
                 status: data.status,
                 error: data.error ?? undefined,
                 resultPath: data.resultPath ?? undefined,
-                alignDetail: parseAlignDetail(data.params),
               }
             : j
         )
