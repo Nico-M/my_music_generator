@@ -132,8 +132,15 @@ export default function TimelineList() {
                 <button onClick={() => handleNudge(i, 'endMs', 0.5)} className="px-1 py-0.5 text-[11px]" style={{ color: 'var(--color-text-subtle)' }} title="+0.5s">&#9654;</button>
               </div>
 
-              {/* Text */}
-              <span className="flex-1 truncate text-[11px]" style={{ color: 'var(--color-text-muted)' }}>{line.text || t('common.empty')}</span>
+              {/* Text — inline editable, single source of truth shared with the lyrics tab */}
+              <input
+                type="text"
+                value={line.text}
+                onChange={(e) => updateLine(i, { text: e.target.value })}
+                className="flex-1 min-w-0 text-[11px] bg-transparent border border-transparent rounded px-1 py-0.5 focus:outline-none focus:border-[var(--color-border)]"
+                style={{ color: 'var(--color-text-muted)' }}
+                placeholder={t('common.empty')}
+              />
 
               {/* Source badge */}
               {line.source !== 'manual' && (

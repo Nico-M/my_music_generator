@@ -17,7 +17,6 @@ export async function POST(req: NextRequest) {
       templateId,
       templateConfig,
       singer,
-      lyrics,
     } = body;
 
     if (!title || !audioPath) {
@@ -41,36 +40,10 @@ export async function POST(req: NextRequest) {
             ? JSON.stringify(templateConfig)
             : null,
         singer: typeof singer === 'string' && singer.trim() ? singer.trim() : null,
-        manualLyrics: typeof lyrics === 'string' && lyrics.trim() ? lyrics.trim() : null,
       },
     });
 
-    // If manual lyrics provided, create LyricLine records
-    if (typeof lyrics === 'string' && lyrics.trim()) {
-      const lines = lyrics
-        .split('\n')
-        .map((line: string) => line.trim())
-        .filter((line: string) => line.length > 0);
-
-      if (lines.length > 0) {
-        await prisma.lyricLine.createMany({
-          data: lines.map((text: string, idx: number) => ({
-            index: idx,
-            text,
-            source: 'manual',
-            projectId: project.id,
-          })),
-        });
-      }
-    }
-
-    // Return project with lines if any were created
-    const created = await prisma.project.findUnique({
-      where: { id: project.id },
-      include: { lines: { orderBy: { index: 'asc' } } },
-    });
-
-    return NextResponse.json(created ?? project, { status: 201 });
+    return NextResponse.json(project, { status: 201 });
   } catch (err) {
     console.error('Create project error:', err);
     return NextResponse.json({ error: 'Failed to create project' }, { status: 500 });

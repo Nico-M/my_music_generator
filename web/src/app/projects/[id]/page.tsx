@@ -30,11 +30,9 @@ export default function ProjectEditorPage({
   const { activeJobs, finishedJobs, track, dismiss } = useJobs();
   const reloadedJobIds = useRef<Set<string>>(new Set());
 
-  const [syncing, setSyncing] = useState<'weighted' | null>(null);
   const [statusMsg, setStatusMsg] = useState<string | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
   const { settings: aiSettings, openSettings, isConfigured: isAiConfigured } = useAiSettings();
-  const [aiCorrecting, setAiCorrecting] = useState(false);
-  const aiCorrectedJobIds = useRef<Set<string>>(new Set());
   useEffect(() => {
     params.then((p) => setId(p.id));
   }, [params]);
@@ -70,43 +68,6 @@ export default function ProjectEditorPage({
     return null;
   };
 
-  const correctLyricsWithAi = async (latestProject: Project | null) => {
-    if (!latestProject || latestProject.lines.length === 0) return;
-
-    setAiCorrecting(true);
-    try {
-      const res = await fetch('/api/ai/correct-lyrics', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          settings: aiSettings,
-          songTitle: latestProject.title,
-          singer: latestProject.singer,
-          lines: latestProject.lines.map((line) => line.text),
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setStatusMsg(err.error || t('ai.correctFailed'));
-        return;
-      }
-
-      const data = await res.json() as { lines?: unknown };
-      if (!Array.isArray(data.lines)) {
-        setStatusMsg(t('ai.correctFailed'));
-        return;
-      }
-
-      // 识别完成后自动纠错；失败时保留 ASR 原始结果，不阻断后续编辑。
-      await useEditorStore.getState().saveLyrics(data.lines as string[]);
-      setStatusMsg(t('ai.corrected'));
-    } catch {
-      setStatusMsg(t('ai.correctFailed'));
-    } finally {
-      setAiCorrecting(false);
-    }
-  };
-
   useEffect(() => {
     const doneJob = finishedJobs.find(
       j => j.status === 'done' && !reloadedJobIds.current.has(j.jobId)
@@ -114,22 +75,37 @@ export default function ProjectEditorPage({
     if (!doneJob) return;
 
     reloadedJobIds.current.add(doneJob.jobId);
-    const reloadAndMaybeCorrect = async () => {
-      const latestProject = await reloadProject();
-      if (
-        doneJob.type !== 'transcribe' ||
-        !isAiConfigured ||
-        aiCorrectedJobIds.current.has(doneJob.jobId)
-      ) {
+    reloadProject();
+  }, [finishedJobs]);
+
+  const transcribeWithApiKey = async (projectId: string) => {
+    setTranscribing(true);
+    setStatusMsg(t('editor.transcribing'));
+    try {
+      const res = await fetch(`/api/projects/${projectId}/lyrics/transcribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: aiSettings }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        jobId?: string;
+        error?: string;
+        aligned?: boolean;
+        notice?: { message?: string };
+      };
+      if (!res.ok) {
+        setStatusMsg(data.error || t('ai.correctFailed'));
         return;
       }
-
-      aiCorrectedJobIds.current.add(doneJob.jobId);
-      await correctLyricsWithAi(latestProject);
-    };
-
-    reloadAndMaybeCorrect();
-  }, [finishedJobs, isAiConfigured]);
+      if (data.jobId) track(data.jobId, 'transcribe');
+      await reloadProject();
+      setStatusMsg(data.notice?.message || t('editor.transcribeDone'));
+    } catch {
+      setStatusMsg(t('ai.correctFailed'));
+    } finally {
+      setTranscribing(false);
+    }
+  };
 
   const isRenderActive = activeJobs.some(j => j.type === 'render');
   const hasLines = lines.length > 0;
@@ -208,7 +184,7 @@ export default function ProjectEditorPage({
             <button
               onClick={async () => {
                 if (!id) return;
-                await trackAsync(id, 'render', 'render', track, t);
+                await trackAsync(id, 'render', 'render', track);
               }}
               disabled={isRenderActive}
               className="btn-primary !py-1.5 !px-3 !text-xs"
@@ -261,9 +237,10 @@ export default function ProjectEditorPage({
             )}
 
             {/* Status message */}
-            {(statusMsg || aiCorrecting) && (
+            {statusMsg && (
               <div className="px-3 py-2 rounded-lg flex items-center gap-2 text-sm mb-3" style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)', color: 'var(--color-text-muted)' }}>
-                <span>{aiCorrecting ? t('ai.correcting') : statusMsg}</span>
+                {transcribing && <LoaderCircle className="animate-spin h-3.5 w-3.5 shrink-0" style={{ color: 'var(--color-accent)' }} />}
+                <span>{statusMsg}</span>
                 <button onClick={() => setStatusMsg(null)} className="ml-auto shrink-0" style={{ color: 'var(--color-text-subtle)' }}>✕</button>
               </div>
             )}
@@ -349,42 +326,20 @@ export default function ProjectEditorPage({
                     <button
                       onClick={async () => {
                         if (!id) return;
-                        if (lines.length > 0 && !confirm('Transcribing will replace all lyrics and timeline. Continue?')) return;
-                        await trackAsync(id, 'lyrics/transcribe', 'transcribe', track, t);
+                        if (!isAiConfigured) {
+                          setStatusMsg(t('ai.needKey'));
+                          openSettings();
+                          return;
+                        }
+                        if (lines.length > 0 && !confirm(t('editor.transcribeConfirm'))) return;
+                        await transcribeWithApiKey(id);
                       }}
-                      disabled={activeJobs.some(j => j.type === 'transcribe')}
-                      className="btn-ghost text-xs"
-                      title="Speech-to-text: extract lyrics from audio using faster-whisper"
+                      disabled={transcribing || activeJobs.some(j => j.type === 'transcribe')}
+                      className="btn-ghost text-xs flex items-center gap-1.5"
+                      title={t('editor.transcribeHint')}
                     >
-                      {t('editor.transcribe')}
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!id) return;
-                        await trackAsync(id, 'timeline/align', 'align', track, t);
-                      }}
-                      disabled={activeJobs.some(j => j.type === 'align')}
-                      className="btn-ghost text-xs"
-                      title="Python alignment: pypinyin phonetic matching"
-                    >
-                      {t('editor.align')}
-                    </button>
-                    <button
-                      onClick={async () => {
-                        if (!id) return;
-                        setSyncing('weighted');
-                        try {
-                          await fetch(`/api/projects/${id}/timeline/weighted`, { method: 'POST' });
-                          await reloadProject();
-                          setStatusMsg(t('editor.weightedResult'));
-                        } catch { alert('Weighted failed'); }
-                        finally { setSyncing(null); }
-                      }}
-                      disabled={syncing === 'weighted'}
-                      className="btn-ghost text-xs"
-                      title="Weighted layout: distribute time by character count"
-                    >
-                      {syncing === 'weighted' ? '...' : t('editor.weighted')}
+                      {transcribing && <LoaderCircle className="animate-spin w-3.5 h-3.5" />}
+                      {transcribing ? t('editor.transcribing') : t('editor.transcribe')}
                     </button>
                   </div>
                 </div>
@@ -461,9 +416,8 @@ export default function ProjectEditorPage({
 async function trackAsync(
   projectId: string,
   endpoint: string,
-  type: 'transcribe' | 'render' | 'align',
-  track: (jobId: string, type: 'transcribe' | 'render' | 'align') => void,
-  t: (key: string) => string,
+  type: 'render',
+  track: (jobId: string, type: 'render') => void,
 ): Promise<string | null> {
   try {
     const res = await fetch(`/api/projects/${projectId}/${endpoint}`, { method: 'POST' });

@@ -1,41 +1,30 @@
 export interface AiSettings {
-  baseUrl: string;
   apiKey: string;
-  model: string;
-  temperature: number;
-  enabled: boolean;
 }
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
-  baseUrl: 'https://api.openai.com/v1',
   apiKey: '',
-  model: 'gpt-5.4',
-  temperature: 0.1,
-  enabled: false,
 };
 
 export const AI_SETTINGS_STORAGE_KEY = 'singing-video.aiSettings';
 
-export function normalizeAiBaseUrl(value: string): string {
-  const trimmed = value.trim();
-  if (!trimmed) return DEFAULT_AI_SETTINGS.baseUrl;
-  return trimmed.replace(/\/+$/, '');
-}
-
 /**
- * Identity of the provider a fetched model list belongs to.
- *
- * Unlike {@link normalizeAiBaseUrl}, this must NOT substitute a default for an
- * empty value: an incomplete base URL / API key pair has no provider identity,
- * so it returns null and callers treat it as "not comparable" rather than as
- * "switched to the default provider".
+ * The lyric recognition endpoint is fixed — this app targets MiniMax ASR only.
+ * Users configure nothing but their API key.
  */
-export function getProviderKey(baseUrl: string, apiKey: string): string | null {
-  const trimmedBaseUrl = baseUrl.trim().replace(/\/+$/, '');
-  const trimmedApiKey = apiKey.trim();
-  if (!trimmedBaseUrl || !trimmedApiKey) return null;
-  return `${trimmedBaseUrl}::${trimmedApiKey}`;
-}
+export const MINIMAX_ASR_URL = 'https://api.minimaxi.com/v1/speech_to_text';
+
+/** Chat-completions endpoint used to punctuate the ASR transcript. */
+export const MINIMAX_LLM_URL = 'https://api.minimax.cn/v1/chat/completions';
+
+/** Public lyrics library used to obtain accurate lyric text. */
+export const LRC_API_URL = 'https://api.lrc.cx/lyrics';
+
+/** MiniMax rejects audio longer than this with a 400 (it does not truncate). */
+export const MAX_AUDIO_DURATION_MS = 500_000;
+
+/** MiniMax rejects uploads larger than this with a 413. */
+export const MAX_AUDIO_BYTES = 50 * 1024 * 1024;
 
 export function loadAiSettings(): AiSettings {
   if (typeof window === 'undefined') return { ...DEFAULT_AI_SETTINGS };
@@ -45,17 +34,7 @@ export function loadAiSettings(): AiSettings {
     const parsed = JSON.parse(raw);
     if (parsed === null || typeof parsed !== 'object') return { ...DEFAULT_AI_SETTINGS };
     return {
-      baseUrl: typeof parsed.baseUrl === 'string' ? parsed.baseUrl : DEFAULT_AI_SETTINGS.baseUrl,
       apiKey: typeof parsed.apiKey === 'string' ? parsed.apiKey : DEFAULT_AI_SETTINGS.apiKey,
-      model: typeof parsed.model === 'string' ? parsed.model : DEFAULT_AI_SETTINGS.model,
-      temperature:
-        typeof parsed.temperature === 'number' &&
-        !Number.isNaN(parsed.temperature) &&
-        parsed.temperature >= 0 &&
-        parsed.temperature <= 2
-          ? parsed.temperature
-          : DEFAULT_AI_SETTINGS.temperature,
-      enabled: typeof parsed.enabled === 'boolean' ? parsed.enabled : DEFAULT_AI_SETTINGS.enabled,
     };
   } catch {
     return { ...DEFAULT_AI_SETTINGS };

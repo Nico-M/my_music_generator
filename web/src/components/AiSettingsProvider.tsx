@@ -49,11 +49,7 @@ export function AiSettingsProvider({ children }: { children: ReactNode }) {
   const closeSettings = useCallback(() => setIsSettingsOpen(false), []);
 
   const isConfigured = useMemo(
-    () =>
-      settings.enabled &&
-      settings.baseUrl.trim().length > 0 &&
-      settings.apiKey.trim().length > 0 &&
-      settings.model.trim().length > 0,
+    () => settings.apiKey.trim().length > 0,
     [settings],
   );
 

@@ -27,7 +27,6 @@ export default function Home() {
   const [title, setTitle] = useState('');
   const [creatorName, setCreatorName] = useState(DEFAULT_CREATOR_NAME);
   const [singer, setSinger] = useState('');
-  const [lyrics, setLyrics] = useState('');
   const [uploading, setUploading] = useState(false);
   const router = useRouter();
 
@@ -54,7 +53,7 @@ export default function Home() {
     e.preventDefault();
     const fileInput = document.querySelector<HTMLInputElement>('#audio-file');
     const file = fileInput?.files?.[0];
-    if (!file || !title.trim()) return;
+    if (!file || !title.trim() || !singer.trim()) return;
 
     setUploading(true);
     try {
@@ -70,8 +69,7 @@ export default function Home() {
         body: JSON.stringify({
           title: title.trim(),
           creatorName: creatorName.trim(),
-          singer: singer.trim() || undefined,
-          lyrics: lyrics.trim() || undefined,
+          singer: singer.trim(),
           templateId: DEFAULT_TEMPLATE_ID,
           templateConfig: {},
           audioPath,
@@ -185,7 +183,10 @@ export default function Home() {
                     <label htmlFor="project-singer" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
                       {t('create.singer')}
                     </label>
-                    <input id="project-singer" type="text" value={singer} onChange={(e) => setSinger(e.target.value)} className="input-field w-full" placeholder={t('create.singerPlaceholder')} />
+                    <input id="project-singer" type="text" value={singer} onChange={(e) => setSinger(e.target.value)} className="input-field w-full" placeholder={t('create.singerPlaceholder')} required />
+                    <p className="mt-1 text-xs" style={{ color: 'var(--color-text-subtle)' }}>
+                      {t('create.singerHint')}
+                    </p>
                   </div>
                   <div>
                     <label htmlFor="audio-file" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
@@ -193,20 +194,6 @@ export default function Home() {
                     </label>
                     <input id="audio-file" type="file" accept="audio/*" className="file-input w-full" required />
                   </div>
-                </div>
-                <div>
-                  <label htmlFor="manual-lyrics" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
-                    {t('create.manualLyrics')}
-                  </label>
-                  <textarea
-                    id="manual-lyrics"
-                    value={lyrics}
-                    onChange={(e) => setLyrics(e.target.value)}
-                    className="input-field w-full"
-                    rows={4}
-                    placeholder={t('create.manualLyricsPlaceholder')}
-                    style={{ resize: 'vertical', fontFamily: 'inherit' }}
-                  />
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button type="submit" disabled={uploading} className="btn-primary min-w-[140px]">

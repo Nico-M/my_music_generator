@@ -77,6 +77,7 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
           index: l.index,
           startMs: l.startMs,
           endMs: l.endMs,
+          text: l.text,
         })),
       }),
     });
