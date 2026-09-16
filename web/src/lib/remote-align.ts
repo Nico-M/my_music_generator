@@ -361,9 +361,37 @@ export async function syncRemoteJobToLocal(
 
     const updatedLines = await writeAlignResults(projectId, lines);
 
+    // Persist how the remote actually matched, so the UI can tell a genuine
+    // acoustic alignment apart from a proportional estimate. Without this the
+    // two are indistinguishable — both surface as status "done".
+    const alignmentMethod = remote.result?.alignment_method;
+    const existing = await prisma.job.findUnique({
+      where: { id: localJobId },
+      select: { params: true },
+    });
+    let mergedParams: string | undefined;
+    if (existing?.params) {
+      try {
+        mergedParams = JSON.stringify({
+          ...(JSON.parse(existing.params) as Record<string, unknown>),
+          alignmentMethod,
+          matchedLines: lines.filter(
+            (l) => l.endMs > l.startMs && l.confidence >= 0.35,
+          ).length,
+          totalLines: lines.length,
+        });
+      } catch {
+        mergedParams = undefined;
+      }
+    }
+
     await prisma.job.update({
       where: { id: localJobId },
-      data: { status: 'done', resultPath: `remote:${remoteJobId}` },
+      data: {
+        status: 'done',
+        resultPath: `remote:${remoteJobId}`,
+        ...(mergedParams ? { params: mergedParams } : {}),
+      },
     });
 
     return { status: 'done', updatedLines };
