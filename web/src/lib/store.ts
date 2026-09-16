@@ -41,7 +41,6 @@ interface EditorStore {
   setIsPlaying: (playing: boolean) => void;
   updateLine: (index: number, partial: Partial<LyricLine>) => void;
   saveTimeline: () => Promise<void>;
-  saveLyrics: (texts: string[]) => Promise<void>;
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
@@ -81,22 +80,6 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
         })),
       }),
     });
-    const updated = await res.json();
-    set({ project: updated, lines: updated.lines ?? [] });
-  },
-
-  saveLyrics: async (texts: string[]) => {
-    const { project } = get();
-    if (!project) return;
-
-    await fetch(`/api/projects/${project.id}/lyrics`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ texts }),
-    });
-
-    // Reload project to get updated lines
-    const res = await fetch(`/api/projects/${project.id}`);
     const updated = await res.json();
     set({ project: updated, lines: updated.lines ?? [] });
   },
