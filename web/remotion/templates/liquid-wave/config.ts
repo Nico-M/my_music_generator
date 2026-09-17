@@ -26,12 +26,15 @@ export function normalizeLiquidConfig(input: unknown): LiquidWaveConfig {
     colorScheme: validSchemes.includes(raw.colorScheme as typeof validSchemes[number])
       ? (raw.colorScheme as LiquidWaveConfig['colorScheme'])
       : liquidDefaultConfig.colorScheme,
-    rippleCount: typeof raw.rippleCount === 'number' && raw.rippleCount >= 2 && raw.rippleCount <= 8
-      ? raw.rippleCount : liquidDefaultConfig.rippleCount,
+    rippleCount:
+      typeof raw.rippleCount === 'number' && raw.rippleCount >= 2 && raw.rippleCount <= 8
+        ? raw.rippleCount
+        : liquidDefaultConfig.rippleCount,
     waveSpeed: validSpeeds.includes(raw.waveSpeed as typeof validSpeeds[number])
       ? (raw.waveSpeed as LiquidWaveConfig['waveSpeed'])
       : liquidDefaultConfig.waveSpeed,
-    showParticles: typeof raw.showParticles === 'boolean' ? raw.showParticles : liquidDefaultConfig.showParticles,
+    showParticles:
+      typeof raw.showParticles === 'boolean' ? raw.showParticles : liquidDefaultConfig.showParticles,
     blurAmount: validBlurs.includes(raw.blurAmount as typeof validBlurs[number])
       ? (raw.blurAmount as LiquidWaveConfig['blurAmount'])
       : liquidDefaultConfig.blurAmount,
@@ -41,12 +44,40 @@ export function normalizeLiquidConfig(input: unknown): LiquidWaveConfig {
 export function getLiquidColors(scheme: LiquidWaveConfig['colorScheme']) {
   switch (scheme) {
     case 'ocean':
-      return { base: '#0B1A2E', accent1: '#1A6B8A', accent2: '#4ECDC4', accent3: '#A8E6CF' };
+      return {
+        base: '#071527',
+        accent1: '#00D2D3',
+        accent2: '#54A0FF',
+        accent3: '#55E6C1',
+        cardBg: 'rgba(7, 21, 39, 0.72)',
+        cardBorder: 'rgba(0, 210, 211, 0.25)',
+      };
     case 'sunset':
-      return { base: '#1A0B1E', accent1: '#FF6B6B', accent2: '#FFB347', accent3: '#FFD93D' };
+      return {
+        base: '#22092C',
+        accent1: '#FF6B81',
+        accent2: '#FEE140',
+        accent3: '#FA709A',
+        cardBg: 'rgba(34, 9, 44, 0.72)',
+        cardBorder: 'rgba(255, 107, 129, 0.25)',
+      };
     case 'aurora':
-      return { base: '#0A0E1A', accent1: '#00FF87', accent2: '#60EFFF', accent3: '#7B2FFF' };
+      return {
+        base: '#0B132B',
+        accent1: '#48CAE4',
+        accent2: '#7209B7',
+        accent3: '#4ADE80',
+        cardBg: 'rgba(11, 19, 43, 0.72)',
+        cardBorder: 'rgba(72, 202, 228, 0.25)',
+      };
     case 'mono':
-      return { base: '#0A0A0A', accent1: '#333333', accent2: '#666666', accent3: '#999999' };
+      return {
+        base: '#111315',
+        accent1: '#F1F2F6',
+        accent2: '#A4B0BE',
+        accent3: '#57606F',
+        cardBg: 'rgba(17, 19, 21, 0.72)',
+        cardBorder: 'rgba(241, 242, 246, 0.22)',
+      };
   }
 }

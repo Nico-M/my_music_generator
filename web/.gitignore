@@ -42,3 +42,5 @@ next-env.d.ts
 
 
 .ace-tool/
+prisma/*.db*
+*.db*

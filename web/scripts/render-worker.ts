@@ -65,6 +65,7 @@ async function main() {
       templateConfig: project.templateConfig,
       legacyTemplate: project.template,
       renderBaseUrl: renderParams.renderBaseUrl,
+      coverUrl: project.coverUrl,
     });
 
     // Bundle the Remotion project

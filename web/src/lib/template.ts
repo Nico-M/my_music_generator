@@ -16,6 +16,7 @@ export interface BaseVideoData {
   durationMs: number;
   audioSrc?: string;
   lines: BaseLyricLine[];
+  coverUrl?: string | null;
 }
 
 export interface RenderInput extends Record<string, unknown> {
@@ -38,6 +39,7 @@ export interface BuildRenderInputArgs {
   templateConfig?: string | null;
   legacyTemplate?: string | null;
   renderBaseUrl?: string;
+  coverUrl?: string | null;
 }
 
 interface LegacyTemplateConfig {
@@ -74,6 +76,7 @@ export function buildRenderInput(args: BuildRenderInputArgs): RenderInput {
       creatorName,
       durationMs: args.durationMs,
       audioSrc: resolveAudioSrc(args.mode, args.audioPath, args.renderBaseUrl),
+      coverUrl: args.coverUrl ?? null,
       lines: args.lines.map((line) => ({
         index: line.index,
         text: line.text,

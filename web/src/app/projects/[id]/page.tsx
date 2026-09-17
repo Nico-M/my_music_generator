@@ -524,6 +524,7 @@ export default function ProjectEditorPage({
                             <option value="neon-spectrum">Neon Spectrum</option>
                             <option value="liquid-wave">Liquid Wave</option>
                             <option value="lyric-poster">Lyric Poster</option>
+                            <option value="ipod-classic">iPod Classic</option>
                           </select>
                         </div>
                       </div>
@@ -701,6 +702,7 @@ export default function ProjectEditorPage({
                 templateId={project.templateId}
                 templateConfig={project.templateConfig}
                 legacyTemplate={project.template}
+                coverUrl={project.coverUrl}
               />
             </div>
           </div>

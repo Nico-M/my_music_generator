@@ -14,6 +14,7 @@ export interface BaseVideoData {
   durationMs: number;
   audioSrc?: string;
   lines: BaseLyricLine[];
+  coverUrl?: string | null;
 }
 
 export interface TemplateRenderProps<TConfig> {

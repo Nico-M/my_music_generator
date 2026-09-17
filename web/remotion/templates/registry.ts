@@ -8,6 +8,8 @@ import { LiquidWaveTemplate } from './liquid-wave/LiquidWaveTemplate';
 import { normalizeLiquidConfig, liquidDefaultConfig, type LiquidWaveConfig } from './liquid-wave/config';
 import { LyricPosterTemplate } from './lyric-poster/LyricPosterTemplate';
 import { normalizePosterConfig, posterDefaultConfig, type LyricPosterConfig } from './lyric-poster/config';
+import { IPodClassicTemplate } from './ipod-classic/IPodClassicTemplate';
+import { normalizeIPodConfig, ipodDefaultConfig, type IPodClassicConfig } from './ipod-classic/config';
 import type { TemplateDefinition } from './types';
 
 const notesTemplate: TemplateDefinition<NotesTemplateConfig> = {
@@ -55,12 +57,22 @@ const lyricPosterTemplate: TemplateDefinition<LyricPosterConfig> = {
   component: LyricPosterTemplate,
 };
 
+const ipodClassicTemplate: TemplateDefinition<IPodClassicConfig> = {
+  id: 'ipod-classic',
+  name: 'iPod Classic',
+  description: 'Classic Apple iPod with anodized aluminum body, click wheel, and Now Playing LCD',
+  defaultConfig: ipodDefaultConfig,
+  normalizeConfig: normalizeIPodConfig,
+  component: IPodClassicTemplate,
+};
+
 export const templateRegistry = {
   notes: notesTemplate,
   record: recordTemplate,
   'neon-spectrum': neonSpectrumTemplate,
   'liquid-wave': liquidWaveTemplate,
   'lyric-poster': lyricPosterTemplate,
+  'ipod-classic': ipodClassicTemplate,
 } as const;
 
 export type TemplateId = keyof typeof templateRegistry;

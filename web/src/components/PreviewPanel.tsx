@@ -24,6 +24,7 @@ interface PreviewPanelProps {
   templateId?: string | null;
   templateConfig?: string | null;
   legacyTemplate?: string | null;
+  coverUrl?: string | null;
 }
 
 export const PreviewPanel: React.FC<PreviewPanelProps> = ({
@@ -36,6 +37,7 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
   templateId,
   templateConfig,
   legacyTemplate,
+  coverUrl,
 }) => {
   const playerRef = useRef<PlayerRef>(null);
   const fps = FPS;
@@ -91,8 +93,9 @@ export const PreviewPanel: React.FC<PreviewPanelProps> = ({
         templateId,
         templateConfig,
         legacyTemplate,
+        coverUrl,
       }),
-    [title, singer, creatorName, audioPath, durationMs, lines, templateId, templateConfig, legacyTemplate]
+    [title, singer, creatorName, audioPath, durationMs, lines, templateId, templateConfig, legacyTemplate, coverUrl]
   );
 
   return (
