@@ -448,7 +448,7 @@ export default function Home() {
               {t('app.templates')}
             </h2>
             <span className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-              5
+              7
             </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -547,6 +547,58 @@ export default function Home() {
                 </h3>
                 <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
                   Editorial poster with kinetic typography
+                </p>
+              </div>
+            </article>
+
+            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+              <div className="relative aspect-video w-full bg-gradient-to-br from-slate-900 via-zinc-800 to-slate-950 flex items-center justify-center">
+                <div className="w-24 h-32 bg-slate-200 rounded-xl p-2 flex flex-col items-center justify-between shadow-md">
+                  <div className="w-full h-14 bg-slate-900 rounded-sm flex items-center justify-center text-[7px] text-sky-400 font-mono">
+                    NOW PLAYING
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-slate-300 border border-slate-400/60 flex items-center justify-center">
+                    <div className="w-4 h-4 rounded-full bg-slate-100 shadow-xs" />
+                  </div>
+                </div>
+              </div>
+              <div className="p-4">
+                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                  iPod Classic
+                </h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
+                  Retro click wheel with Now Playing LCD screen
+                </p>
+              </div>
+            </article>
+
+            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+              <div className="relative aspect-video w-full bg-gradient-to-br from-purple-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4">
+                <div className="w-48 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 p-2.5 shadow-lg flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-6 rounded bg-purple-900/80 flex items-center justify-center text-[7px] text-white font-bold">music</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="h-1.5 bg-white/80 rounded w-3/4 mb-1" />
+                      <div className="h-1 bg-white/40 rounded w-1/2" />
+                    </div>
+                    <div className="w-3.5 h-3.5 rounded-full bg-blue-500" />
+                  </div>
+                  <div className="h-1 bg-white/30 rounded-full w-full relative">
+                    <div className="h-full bg-white rounded-full w-1/2" />
+                  </div>
+                  <div className="flex justify-center items-center gap-3 pt-0.5 text-white/90 text-[9px]">
+                    <span>◀◀</span>
+                    <span className="font-bold">❚❚</span>
+                    <span>▶▶</span>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4">
+                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
+                  Music Widget
+                </h3>
+                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
+                  iOS style mobile music widget with frosted glass
                 </p>
               </div>
             </article>

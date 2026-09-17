@@ -167,6 +167,14 @@ export function CheckCircle(props: IconProps) {
   );
 }
 
+export function Check(props: IconProps) {
+  return (
+    <StrokedIcon strokeWidth={44} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <polyline points="416 128 192 384 96 288" />
+    </StrokedIcon>
+  );
+}
+
 export function CheckCircle2(props: IconProps) {
   return <CheckCircle {...props} />;
 }

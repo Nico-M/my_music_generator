@@ -10,6 +10,8 @@ import { LyricPosterTemplate } from './lyric-poster/LyricPosterTemplate';
 import { normalizePosterConfig, posterDefaultConfig, type LyricPosterConfig } from './lyric-poster/config';
 import { IPodClassicTemplate } from './ipod-classic/IPodClassicTemplate';
 import { normalizeIPodConfig, ipodDefaultConfig, type IPodClassicConfig } from './ipod-classic/config';
+import { MusicWidgetTemplate } from './music-widget/MusicWidgetTemplate';
+import { normalizeMusicWidgetConfig, musicWidgetDefaultConfig, type MusicWidgetConfig } from './music-widget/config';
 import type { TemplateDefinition } from './types';
 
 const notesTemplate: TemplateDefinition<NotesTemplateConfig> = {
@@ -66,6 +68,15 @@ const ipodClassicTemplate: TemplateDefinition<IPodClassicConfig> = {
   component: IPodClassicTemplate,
 };
 
+const musicWidgetTemplate: TemplateDefinition<MusicWidgetConfig> = {
+  id: 'music-widget',
+  name: 'Music Widget',
+  description: 'iOS style mobile music widget with frosted glass, scrubber controls, and synchronized lyrics',
+  defaultConfig: musicWidgetDefaultConfig,
+  normalizeConfig: normalizeMusicWidgetConfig,
+  component: MusicWidgetTemplate,
+};
+
 export const templateRegistry = {
   notes: notesTemplate,
   record: recordTemplate,
@@ -73,6 +84,7 @@ export const templateRegistry = {
   'liquid-wave': liquidWaveTemplate,
   'lyric-poster': lyricPosterTemplate,
   'ipod-classic': ipodClassicTemplate,
+  'music-widget': musicWidgetTemplate,
 } as const;
 
 export type TemplateId = keyof typeof templateRegistry;

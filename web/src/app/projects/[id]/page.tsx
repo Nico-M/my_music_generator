@@ -19,10 +19,27 @@ import {
   Timer,
   LoaderCircle,
   CheckCircle2,
+  Check,
   Music2,
   Trash2,
 } from "@/components/icons/IonIcons";
 import { Agentation } from "agentation";
+
+interface TemplateOption {
+  id: string;
+  name: string;
+  image: string;
+}
+
+const TEMPLATE_OPTIONS: TemplateOption[] = [
+  { id: "notes", name: "Notes", image: "/assets/templates/notes.jpg" },
+  { id: "record", name: "Record", image: "/assets/templates/record.jpg" },
+  { id: "neon-spectrum", name: "Neon Spectrum", image: "/assets/templates/neon-spectrum.jpg" },
+  { id: "liquid-wave", name: "Liquid Wave", image: "/assets/templates/liquid-wave.jpg" },
+  { id: "lyric-poster", name: "Lyric Poster", image: "/assets/templates/lyric-poster.jpg" },
+  { id: "ipod-classic", name: "iPod Classic", image: "/assets/templates/ipod-classic.jpg" },
+  { id: "music-widget", name: "Music Widget", image: "/assets/templates/music-widget.jpg" },
+];
 
 export default function ProjectEditorPage({
   params,
@@ -46,6 +63,23 @@ export default function ProjectEditorPage({
   const [fetchingCover, setFetchingCover] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const router = useRouter();
+
+  const handleSelectTemplate = async (templateId: string) => {
+    if (!id || (project?.templateId ?? DEFAULT_TEMPLATE_ID) === templateId) return;
+    if (project) {
+      setProject({ ...project, templateId });
+    }
+    try {
+      await fetch(`/api/projects/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId }),
+      });
+      await reloadProject();
+    } catch {
+      await reloadProject();
+    }
+  };
 
   const handleDeleteProject = async () => {
     if (!id || !project) return;
@@ -499,34 +533,6 @@ export default function ProjectEditorPage({
                             placeholder={t("create.brandPlaceholder")}
                           />
                         </div>
-
-                        <div>
-                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                            {t("create.template")}
-                          </label>
-                          <select
-                            defaultValue={project.templateId ?? DEFAULT_TEMPLATE_ID}
-                            onChange={async (e) => {
-                              if (!id) return;
-                              try {
-                                await fetch(`/api/projects/${id}`, {
-                                  method: "PATCH",
-                                  headers: { "Content-Type": "application/json" },
-                                  body: JSON.stringify({ templateId: e.target.value }),
-                                });
-                                reloadProject();
-                              } catch {}
-                            }}
-                            className="input-field !py-1.5 !px-2.5 !text-xs w-full"
-                          >
-                            <option value="notes">Notes</option>
-                            <option value="record">Record</option>
-                            <option value="neon-spectrum">Neon Spectrum</option>
-                            <option value="liquid-wave">Liquid Wave</option>
-                            <option value="lyric-poster">Lyric Poster</option>
-                            <option value="ipod-classic">iPod Classic</option>
-                          </select>
-                        </div>
                       </div>
 
                       {/* Right: Cover Preview / Placeholder (5 cols) */}
@@ -603,6 +609,65 @@ export default function ProjectEditorPage({
                             </button>
                           </div>
                         )}
+                      </div>
+                    </div>
+
+                    {/* Template Card Selection (Full Width) */}
+                    <div className="mt-5 pt-4 border-t border-slate-100">
+                      <div className="flex items-center justify-between mb-2.5">
+                        <label className="text-[11px] font-semibold text-slate-700 flex items-center gap-1.5">
+                          <span>{t("create.template")}</span>
+                          <span className="text-[10px] font-normal text-slate-400">
+                            （已选：{TEMPLATE_OPTIONS.find((tpl) => tpl.id === (project.templateId ?? DEFAULT_TEMPLATE_ID))?.name ?? "Notes"}）
+                          </span>
+                        </label>
+                        <span className="text-[10px] text-slate-400 font-medium">7 款风格可选</span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3.5">
+                        {TEMPLATE_OPTIONS.map((tpl) => {
+                          const isSelected = (project.templateId ?? DEFAULT_TEMPLATE_ID) === tpl.id;
+                          return (
+                            <button
+                              key={tpl.id}
+                              type="button"
+                              onClick={() => handleSelectTemplate(tpl.id)}
+                              className={`group relative flex flex-col rounded-xl overflow-hidden border-2 text-left transition-all duration-200 cursor-pointer ${
+                                isSelected
+                                  ? "border-indigo-600 ring-2 ring-indigo-500/20 shadow-md"
+                                  : "border-slate-200 hover:border-indigo-300 hover:shadow-sm bg-white"
+                              }`}
+                              title={tpl.name}
+                            >
+                              <div className="relative aspect-[2/3] w-full overflow-hidden bg-slate-100">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={tpl.image}
+                                  alt={tpl.name}
+                                  className={`w-full h-full object-cover transition-transform duration-300 ${
+                                    isSelected ? "scale-102" : "group-hover:scale-105"
+                                  }`}
+                                />
+                                {isSelected && (
+                                  <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shadow-md">
+                                    <Check className="w-3 h-3 stroke-[3]" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="py-2 px-1.5 bg-white text-center">
+                                <span
+                                  className={`block text-xs truncate leading-tight ${
+                                    isSelected
+                                      ? "font-bold text-indigo-600"
+                                      : "font-medium text-slate-700 group-hover:text-slate-900"
+                                  }`}
+                                >
+                                  {tpl.name}
+                                </span>
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
 
