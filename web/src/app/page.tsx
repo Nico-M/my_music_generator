@@ -10,6 +10,7 @@ import { useI18n } from '@/components/LanguageProvider';
 import { Plus, Music2, Upload, LoaderCircle } from '@/components/icons/IonIcons';
 import TemplateCarousel, { TEMPLATES } from '@/components/TemplateCarousel';
 import { SoftAurora, BlurText, ShinyText, SpotlightCard } from '@/components/react-bits';
+import { WorkflowSection, BentoFeatures, BottomCta } from '@/components/landing';
 import { Agentation } from "agentation";
 
 interface ProjectSummary {
@@ -153,23 +154,52 @@ export default function Home() {
         className={`fixed top-0 left-0 right-0 z-30 transition-all duration-300 ${
           isScrolled
             ? 'bg-white/85 backdrop-blur-md border-b border-[var(--color-border)] shadow-xs'
-            : 'bg-transparent border-b border-transparent'
+            : 'bg-white/40 backdrop-blur-xs border-b border-transparent'
         }`}
       >
-        <div className="max-w-5xl mx-auto px-5 py-4 flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight flex items-center gap-2" style={{ fontFamily: 'var(--font-heading)', color: 'var(--color-primary)' }}>
-              <Music2 className="w-5 h-5" />
-              SingVid
-            </h1>
-            <p className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-              {t('app.tagline')}
-            </p>
+        <div className="max-w-5xl mx-auto px-5 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-sm shadow-indigo-500/25">
+              <Music2 className="w-4 h-4" />
+            </div>
+            <div>
+              <h1 className="text-base sm:text-lg font-bold tracking-tight leading-none text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>
+                SingVid
+              </h1>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-mono text-slate-400 font-medium">v2.0 Aurora</span>
+              </div>
+            </div>
           </div>
+
+          <nav className="hidden md:flex items-center gap-6 text-xs font-medium text-slate-600">
+            <a href="#templates" className="hover:text-indigo-600 transition-colors">
+              {locale === 'zh' ? '视觉风格' : 'Templates'}
+            </a>
+            <a href="#workflow" className="hover:text-indigo-600 transition-colors">
+              {locale === 'zh' ? '创作流程' : 'Workflow'}
+            </a>
+            <a href="#features" className="hover:text-indigo-600 transition-colors">
+              {locale === 'zh' ? '核心架构' : 'Features'}
+            </a>
+            <a href="#projects" className="hover:text-indigo-600 transition-colors">
+              {locale === 'zh' ? '我的项目' : 'Projects'}
+            </a>
+          </nav>
+
           <div className="flex items-center gap-3">
             <LanguageToggle />
-            <button onClick={() => setShowCreate(!showCreate)} className="btn-primary">
-              <Plus className="w-4 h-4" />
+            <button
+              onClick={() => {
+                setShowCreate(true);
+                const el = document.getElementById('create-panel');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+                else window.scrollTo({ top: 320, behavior: 'smooth' });
+              }}
+              className="btn-primary text-xs sm:text-sm py-2 px-3 sm:px-4 shadow-sm shadow-indigo-500/25"
+            >
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               {t('app.newProject')}
             </button>
           </div>
@@ -244,13 +274,21 @@ export default function Home() {
                 <button
                   onClick={() => {
                     setShowCreate(true);
-                    window.scrollTo({ top: 320, behavior: 'smooth' });
+                    const el = document.getElementById('create-panel');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                    else window.scrollTo({ top: 400, behavior: 'smooth' });
                   }}
                   className="btn-primary text-base px-7 py-3 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
                 >
                   <Upload className="w-4 h-4" />
                   {t('app.startCreating')}
                 </button>
+                <a
+                  href="#templates"
+                  className="inline-flex items-center justify-center text-sm font-semibold px-5 py-3 rounded-lg border border-slate-300/80 bg-white/85 hover:bg-white text-slate-700 shadow-xs hover:border-slate-400 transition-all"
+                >
+                  {locale === 'zh' ? '浏览视觉模板 ↓' : 'Explore Templates ↓'}
+                </a>
               </div>
 
               {/* Feature pills */}
@@ -297,15 +335,85 @@ export default function Home() {
         </div>
       </section>
 
-      <main className="max-w-5xl mx-auto px-5 py-8">
+      {/* ── 3D Templates Showcase Section ── */}
+      <section id="templates" className="py-20 border-b border-[var(--color-border)] relative overflow-hidden bg-gradient-to-b from-transparent via-white/50 to-transparent">
+        <div className="max-w-5xl mx-auto px-5">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-600 text-xs font-semibold mb-3">
+              <span>🎨 {locale === 'zh' ? '视觉风格展台' : 'Visual Gallery'}</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight mb-2" style={{ fontFamily: 'var(--font-heading)' }}>
+              {locale === 'zh' ? '7 款精心设计的电影级歌词动效风格' : '7 Designer-Crafted Kinetic Motion Styles'}
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500">
+              {locale === 'zh'
+                ? '融合赛博极光着色器、流体水波、极简便签与经典复古，满足多元音乐情绪'
+                : 'From cyber aurora shaders to retro iPod LCD, crafted for every genre.'}
+            </p>
+          </div>
+
+          <TemplateCarousel
+            onSelectTemplate={(tplId) => {
+              setSelectedTemplateId(tplId);
+              setShowCreate(true);
+              const el = document.getElementById('create-panel');
+              if (el) el.scrollIntoView({ behavior: 'smooth' });
+              else window.scrollTo({ top: 400, behavior: 'smooth' });
+            }}
+          />
+        </div>
+      </section>
+
+      {/* ── Rapid 3-Step Workflow Section ── */}
+      <WorkflowSection />
+
+      {/* ── Bento Grid Core Features ── */}
+      <BentoFeatures />
+
+      {/* ── Creator Workspace: Projects & Uploader ── */}
+      <section id="projects" className="py-16 max-w-5xl mx-auto px-5">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 text-xs font-semibold mb-2">
+              <span>📁 {locale === 'zh' ? '创作者工作台' : 'Workspace'}</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900" style={{ fontFamily: 'var(--font-heading)' }}>
+              {t('app.yourProjects')}
+            </h2>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-mono px-3 py-1 rounded-full bg-white text-slate-600 border border-slate-200 shadow-xs">
+              {t('app.total', { count: projects.length })}
+            </span>
+            <button
+              onClick={() => {
+                setShowCreate(!showCreate);
+                if (!showCreate) {
+                  setTimeout(() => {
+                    document.getElementById('create-panel')?.scrollIntoView({ behavior: 'smooth' });
+                  }, 50);
+                }
+              }}
+              className="btn-primary text-xs sm:text-sm py-2 px-3.5"
+            >
+              <Plus className="w-4 h-4" />
+              {t('app.newProject')}
+            </button>
+          </div>
+        </div>
+
         {/* Create Panel — visible when toggled */}
         {showCreate && (
-          <div className="mb-8 rounded-xl border-0" style={{ background: 'var(--color-surface)', outline: '1px solid var(--color-border)' }}>
+          <div
+            id="create-panel"
+            className="mb-8 rounded-2xl border-0 shadow-lg shadow-indigo-500/5 overflow-hidden transition-all duration-300"
+            style={{ background: 'var(--color-surface)', outline: '1px solid var(--color-border)' }}
+          >
             {/* Accent top line */}
-            <div className="h-0.5 rounded-t-xl" style={{ background: 'linear-gradient(90deg, var(--color-accent), var(--color-primary))' }} />
-            <div className="p-6">
-              <h2 className="text-base font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
-                <Upload className="w-4 h-4" style={{ color: 'var(--color-accent)' }} />
+            <div className="h-1" style={{ background: 'linear-gradient(90deg, var(--color-accent), var(--color-primary))' }} />
+            <div className="p-6 sm:p-8">
+              <h2 className="text-base sm:text-lg font-semibold mb-5 flex items-center gap-2" style={{ color: 'var(--color-text)' }}>
+                <Upload className="w-5 h-5 text-indigo-600" />
                 {t('create.title')}
               </h2>
               <form onSubmit={handleFileUpload} className="space-y-4">
@@ -355,7 +463,7 @@ export default function Home() {
                     </select>
                   </div>
                 </div>
-                <div className="flex gap-3 pt-1">
+                <div className="flex gap-3 pt-2">
                   <button type="submit" disabled={uploading} className="btn-primary min-w-[140px]">
                     {uploading ? (
                       <span className="flex items-center gap-2">
@@ -372,191 +480,166 @@ export default function Home() {
         )}
 
         {/* Project List */}
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
-              {t('app.yourProjects')}
-            </h2>
-            <span className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-              {t('app.total', { count: projects.length })}
-            </span>
-          </div>
-
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3].map((n) => (
-                <div key={n} className="rounded-2xl border border-slate-200/80 bg-white overflow-hidden animate-pulse shadow-sm">
-                  <div className="aspect-[16/10] w-full bg-slate-100" />
-                  <div className="p-4 space-y-3">
-                    <div className="h-4 bg-slate-200 rounded w-3/4" />
-                    <div className="h-3 bg-slate-100 rounded w-1/2" />
-                    <div className="h-2 bg-slate-100 rounded w-full mt-2" />
-                    <div className="pt-2 border-t border-slate-100 flex justify-between">
-                      <div className="h-3 bg-slate-100 rounded w-1/3" />
-                      <div className="h-3 bg-slate-100 rounded w-12" />
-                    </div>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="rounded-2xl border border-slate-200/80 bg-white overflow-hidden animate-pulse shadow-sm">
+                <div className="aspect-[16/10] w-full bg-slate-100" />
+                <div className="p-4 space-y-3">
+                  <div className="h-4 bg-slate-200 rounded w-3/4" />
+                  <div className="h-3 bg-slate-100 rounded w-1/2" />
+                  <div className="h-2 bg-slate-100 rounded w-full mt-2" />
+                  <div className="pt-2 border-t border-slate-100 flex justify-between">
+                    <div className="h-3 bg-slate-100 rounded w-1/3" />
+                    <div className="h-3 bg-slate-100 rounded w-12" />
                   </div>
                 </div>
-              ))}
-            </div>
-          ) : loadError ? (
-            <div className="text-center py-16 rounded-xl border border-dashed" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <p className="text-sm mb-2" style={{ color: 'var(--color-error, #ef4444)' }}>{loadError}</p>
-              <button onClick={() => { setLoading(true); setLoadError(null); loadProjects(); }} className="btn-secondary text-sm">
-                重试
-              </button>
-            </div>
-          ) : projects.length === 0 ? (
-            <div className="text-center py-20 rounded-xl border border-dashed" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="flex justify-center mb-3" style={{ color: 'var(--color-text-subtle)' }}>
-                <Music2 className="w-8 h-8" />
               </div>
-              <p className="text-sm" style={{ color: 'var(--color-text-subtle)' }}>{t('app.noProjects')}</p>
-              <p className="text-xs mt-1 mb-4" style={{ color: 'var(--color-text-subtle)' }}>{t('app.createFirst')}</p>
-              <button onClick={() => setShowCreate(true)} className="btn-primary text-sm">
-                <Plus className="w-4 h-4" />
-                {t('app.createProject')}
-              </button>
+            ))}
+          </div>
+        ) : loadError ? (
+          <div className="text-center py-16 rounded-xl border border-dashed" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
+            <p className="text-sm mb-2" style={{ color: 'var(--color-error, #ef4444)' }}>{loadError}</p>
+            <button onClick={() => { setLoading(true); setLoadError(null); loadProjects(); }} className="btn-secondary text-sm">
+              重试
+            </button>
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="text-center py-20 rounded-2xl border border-dashed border-slate-200 bg-white shadow-xs">
+            <div className="flex justify-center mb-3 text-indigo-500">
+              <Music2 className="w-10 h-10" />
             </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {projects.map((p) => {
-                const palette = getCardPalette(p.id);
-                return (
-                  <SpotlightCard
-                    key={p.id}
-                    className="group cursor-pointer rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-400/50 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden !p-0"
-                    spotlightColor="rgba(70, 72, 212, 0.12)"
-                    spotlightSize={340}
-                    onClick={() => router.push(`/projects/${p.id}`)}
-                  >
-                    {/* 顶部流光封面与视听元素 */}
-                    <div className={`relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br ${palette.gradient} flex items-center justify-center p-3`}>
-                      {p.coverUrl && (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img
-                          src={p.coverUrl}
-                          alt={p.title}
-                          className="absolute inset-0 w-full h-full object-cover object-center"
+            <p className="text-base font-semibold text-slate-800">{t('app.noProjects')}</p>
+            <p className="text-xs mt-1 mb-5 text-slate-400">{t('app.createFirst')}</p>
+            <button onClick={() => setShowCreate(true)} className="btn-primary text-sm shadow-md shadow-indigo-500/20">
+              <Plus className="w-4 h-4" />
+              {t('app.createProject')}
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {projects.map((p) => {
+              const palette = getCardPalette(p.id);
+              return (
+                <SpotlightCard
+                  key={p.id}
+                  className="group cursor-pointer rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-400/50 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden !p-0"
+                  spotlightColor="rgba(70, 72, 212, 0.12)"
+                  spotlightSize={340}
+                  onClick={() => router.push(`/projects/${p.id}`)}
+                >
+                  {/* 顶部流光封面与视听元素 */}
+                  <div className={`relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br ${palette.gradient} flex items-center justify-center p-3`}>
+                    {p.coverUrl && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={p.coverUrl}
+                        alt={p.title}
+                        className="absolute inset-0 w-full h-full object-cover object-center"
+                      />
+                    )}
+                    {/* 声波律动装饰线条 */}
+                    <div className="absolute inset-0 opacity-25 mix-blend-overlay flex items-center justify-center gap-1 pointer-events-none px-5">
+                      {[35, 60, 80, 45, 95, 60, 85, 100, 70, 90, 50, 95, 65, 40, 85, 55, 30].map((h, i) => (
+                        <span
+                          key={i}
+                          className="flex-1 max-w-[4px] rounded-full bg-white transition-all duration-500 group-hover:scale-y-115"
+                          style={{ height: `${h}%` }}
                         />
-                      )}
-                      {/* 声波律动装饰线条 */}
-                      <div className="absolute inset-0 opacity-25 mix-blend-overlay flex items-center justify-center gap-1 pointer-events-none px-5">
-                        {[35, 60, 80, 45, 95, 60, 85, 100, 70, 90, 50, 95, 65, 40, 85, 55, 30].map((h, i) => (
-                          <span
-                            key={i}
-                            className="flex-1 max-w-[4px] rounded-full bg-white transition-all duration-500 group-hover:scale-y-115"
-                            style={{ height: `${h}%` }}
+                      ))}
+                    </div>
+
+                    {/* 黑胶同心圆质感装饰 */}
+                    <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full border-4 border-white/10 bg-black/10 backdrop-blur-[1px] flex items-center justify-center shadow-inner group-hover:rotate-45 transition-transform duration-700 ease-out pointer-events-none">
+                      <div className="w-22 h-22 rounded-full border border-white/15 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full border border-white/20 bg-white/10 flex items-center justify-center">
+                          <div className="w-3 h-3 rounded-full bg-white/40" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 右上角：9:16 规格 */}
+                    <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-black/25 backdrop-blur-md border border-white/25 text-[10px] font-semibold text-white tracking-wide shadow-sm">
+                      9:16
+                    </div>
+
+                    {/* 右下角：时长微胶囊 */}
+                    <div className="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-full bg-black/45 backdrop-blur-md text-white text-[11px] font-mono tracking-wider flex items-center gap-1.5 shadow-sm">
+                      <Music2 className="w-3 h-3 text-white/90" />
+                      <span>{Math.round(p.durationMs / 1000)}s</span>
+                    </div>
+
+                    {/* Hover 悬停播放诱导遮罩 */}
+                    <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
+                      <div className="w-12 h-12 rounded-full bg-white/95 text-indigo-600 shadow-xl flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform duration-300">
+                        <svg className="w-5 h-5 fill-current ml-0.5" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 卡片下半部：内容与交互元信息 */}
+                  <div className="p-4 flex flex-col flex-1 justify-between">
+                    <div>
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <h3 className="font-bold text-base text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
+                          {p.title}
+                        </h3>
+                      </div>
+                      <p className="text-xs text-slate-500 flex items-center gap-1.5 mb-3">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                        <span className="truncate">{p.singer || t('create.singerPlaceholder')}</span>
+                      </p>
+
+                      {/* 迷你声波可视化条 */}
+                      <div className="flex items-center gap-1 h-3 px-0.5 my-2">
+                        {[35, 65, 25, 80, 50, 90, 60, 45, 85, 55, 30, 75, 95, 50, 70, 40, 80, 55].map((val, idx) => (
+                          <div
+                            key={idx}
+                            className={`flex-1 bg-slate-200/90 ${palette.barColor} rounded-full transition-all duration-300`}
+                            style={{
+                              height: `${Math.max(20, (val * ((idx % 3) + 1)) % 100)}%`,
+                            }}
                           />
                         ))}
                       </div>
-
-                      {/* 黑胶同心圆质感装饰 */}
-                      <div className="absolute -right-8 -bottom-8 w-32 h-32 rounded-full border-4 border-white/10 bg-black/10 backdrop-blur-[1px] flex items-center justify-center shadow-inner group-hover:rotate-45 transition-transform duration-700 ease-out pointer-events-none">
-                        <div className="w-22 h-22 rounded-full border border-white/15 flex items-center justify-center">
-                          <div className="w-12 h-12 rounded-full border border-white/20 bg-white/10 flex items-center justify-center">
-                            <div className="w-3 h-3 rounded-full bg-white/40" />
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* 右上角：9:16 规格 */}
-                      <div className="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded-full bg-black/25 backdrop-blur-md border border-white/25 text-[10px] font-semibold text-white tracking-wide shadow-sm">
-                        9:16
-                      </div>
-
-                      {/* 右下角：时长微胶囊 */}
-                      <div className="absolute bottom-2.5 right-2.5 px-2.5 py-1 rounded-full bg-black/45 backdrop-blur-md text-white text-[11px] font-mono tracking-wider flex items-center gap-1.5 shadow-sm">
-                        <Music2 className="w-3 h-3 text-white/90" />
-                        <span>{Math.round(p.durationMs / 1000)}s</span>
-                      </div>
-
-                      {/* Hover 悬停播放诱导遮罩 */}
-                      <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
-                        <div className="w-12 h-12 rounded-full bg-white/95 text-indigo-600 shadow-xl flex items-center justify-center transform scale-90 group-hover:scale-100 transition-transform duration-300">
-                          <svg className="w-5 h-5 fill-current ml-0.5" viewBox="0 0 24 24">
-                            <path d="M8 5v14l11-7z" />
-                          </svg>
-                        </div>
-                      </div>
                     </div>
 
-                    {/* 卡片下半部：内容与交互元信息 */}
-                    <div className="p-4 flex flex-col flex-1 justify-between">
-                      <div>
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <h3 className="font-bold text-base text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1">
-                            {p.title}
-                          </h3>
-                        </div>
-                        <p className="text-xs text-slate-500 flex items-center gap-1.5 mb-3">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                          <span className="truncate">{p.singer || t('create.singerPlaceholder')}</span>
-                        </p>
-
-                        {/* 迷你声波可视化条 */}
-                        <div className="flex items-center gap-1 h-3 px-0.5 my-2">
-                          {[35, 65, 25, 80, 50, 90, 60, 45, 85, 55, 30, 75, 95, 50, 70, 40, 80, 55].map((val, idx) => (
-                            <div
-                              key={idx}
-                              className={`flex-1 bg-slate-200/90 ${palette.barColor} rounded-full transition-all duration-300`}
-                              style={{
-                                height: `${Math.max(20, (val * ((idx % 3) + 1)) % 100)}%`,
-                              }}
-                            />
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* 底部元数据与操作指引 */}
-                      <div className="flex items-center justify-between pt-3 mt-1 border-t border-slate-100 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-md text-[11px] font-medium border ${palette.accentBg} ${palette.accentText}`}>
-                            {p.lines?.length ?? 0} 行歌词
-                          </span>
-                          <span className="text-[11px] text-slate-400">
-                            {new Date(p.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        <span className="flex items-center gap-1 font-semibold text-slate-500 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all text-xs">
-                          制作
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                          </svg>
+                    {/* 底部元数据与操作指引 */}
+                    <div className="flex items-center justify-between pt-3 mt-1 border-t border-slate-100 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-md text-[11px] font-medium border ${palette.accentBg} ${palette.accentText}`}>
+                          {p.lines?.length ?? 0} 行歌词
+                        </span>
+                        <span className="text-[11px] text-slate-400">
+                          {new Date(p.createdAt).toLocaleDateString()}
                         </span>
                       </div>
+                      <span className="flex items-center gap-1 font-semibold text-slate-500 group-hover:text-indigo-600 group-hover:translate-x-0.5 transition-all text-xs">
+                        制作
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </span>
                     </div>
-                  </SpotlightCard>
-                );
-              })}
-            </div>
-          )}
-        </section>
-
-        <section className="mt-12">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
-                {t('app.templates')}
-              </h2>
-              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-subtle)' }}>
-                7 款精心设计的歌词动效风格
-              </p>
-            </div>
-            <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
-              7 款风格
-            </span>
+                  </div>
+                </SpotlightCard>
+              );
+            })}
           </div>
+        )}
+      </section>
 
-          <TemplateCarousel
-            onSelectTemplate={(tplId) => {
-              setSelectedTemplateId(tplId);
-              setShowCreate(true);
-              window.scrollTo({ top: 260, behavior: 'smooth' });
-            }}
-          />
-        </section>
-      </main>
+      {/* ── Bottom CTA ── */}
+      <BottomCta
+        onStartCreate={() => {
+          setShowCreate(true);
+          const el = document.getElementById('create-panel');
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+          else window.scrollTo({ top: 400, behavior: 'smooth' });
+        }}
+      />
     </div>
     {process.env.NODE_ENV === "development" && (
       <Agentation
