@@ -45,10 +45,13 @@ export type ProjectMinAggregateOutputType = {
   durationMs: number | null
   vocalStartMs: number | null
   vocalEndMs: number | null
+  creatorName: string | null
+  templateId: string | null
+  templateConfig: string | null
   template: string | null
   singer: string | null
   manualLyrics: string | null
-  transcriptJson: string | null
+  coverUrl: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -60,10 +63,13 @@ export type ProjectMaxAggregateOutputType = {
   durationMs: number | null
   vocalStartMs: number | null
   vocalEndMs: number | null
+  creatorName: string | null
+  templateId: string | null
+  templateConfig: string | null
   template: string | null
   singer: string | null
   manualLyrics: string | null
-  transcriptJson: string | null
+  coverUrl: string | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -75,10 +81,13 @@ export type ProjectCountAggregateOutputType = {
   durationMs: number
   vocalStartMs: number
   vocalEndMs: number
+  creatorName: number
+  templateId: number
+  templateConfig: number
   template: number
   singer: number
   manualLyrics: number
-  transcriptJson: number
+  coverUrl: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -104,10 +113,13 @@ export type ProjectMinAggregateInputType = {
   durationMs?: true
   vocalStartMs?: true
   vocalEndMs?: true
+  creatorName?: true
+  templateId?: true
+  templateConfig?: true
   template?: true
   singer?: true
   manualLyrics?: true
-  transcriptJson?: true
+  coverUrl?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -119,10 +131,13 @@ export type ProjectMaxAggregateInputType = {
   durationMs?: true
   vocalStartMs?: true
   vocalEndMs?: true
+  creatorName?: true
+  templateId?: true
+  templateConfig?: true
   template?: true
   singer?: true
   manualLyrics?: true
-  transcriptJson?: true
+  coverUrl?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -134,10 +149,13 @@ export type ProjectCountAggregateInputType = {
   durationMs?: true
   vocalStartMs?: true
   vocalEndMs?: true
+  creatorName?: true
+  templateId?: true
+  templateConfig?: true
   template?: true
   singer?: true
   manualLyrics?: true
-  transcriptJson?: true
+  coverUrl?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -236,10 +254,13 @@ export type ProjectGroupByOutputType = {
   durationMs: number
   vocalStartMs: number | null
   vocalEndMs: number | null
+  creatorName: string | null
+  templateId: string
+  templateConfig: string | null
   template: string | null
   singer: string | null
   manualLyrics: string | null
-  transcriptJson: string | null
+  coverUrl: string | null
   createdAt: Date
   updatedAt: Date
   _count: ProjectCountAggregateOutputType | null
@@ -274,10 +295,13 @@ export type ProjectWhereInput = {
   durationMs?: Prisma.IntFilter<"Project"> | number
   vocalStartMs?: Prisma.IntNullableFilter<"Project"> | number | null
   vocalEndMs?: Prisma.IntNullableFilter<"Project"> | number | null
+  creatorName?: Prisma.StringNullableFilter<"Project"> | string | null
+  templateId?: Prisma.StringFilter<"Project"> | string
+  templateConfig?: Prisma.StringNullableFilter<"Project"> | string | null
   template?: Prisma.StringNullableFilter<"Project"> | string | null
   singer?: Prisma.StringNullableFilter<"Project"> | string | null
   manualLyrics?: Prisma.StringNullableFilter<"Project"> | string | null
-  transcriptJson?: Prisma.StringNullableFilter<"Project"> | string | null
+  coverUrl?: Prisma.StringNullableFilter<"Project"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   lines?: Prisma.LyricLineListRelationFilter
@@ -291,10 +315,13 @@ export type ProjectOrderByWithRelationInput = {
   durationMs?: Prisma.SortOrder
   vocalStartMs?: Prisma.SortOrderInput | Prisma.SortOrder
   vocalEndMs?: Prisma.SortOrderInput | Prisma.SortOrder
+  creatorName?: Prisma.SortOrderInput | Prisma.SortOrder
+  templateId?: Prisma.SortOrder
+  templateConfig?: Prisma.SortOrderInput | Prisma.SortOrder
   template?: Prisma.SortOrderInput | Prisma.SortOrder
   singer?: Prisma.SortOrderInput | Prisma.SortOrder
   manualLyrics?: Prisma.SortOrderInput | Prisma.SortOrder
-  transcriptJson?: Prisma.SortOrderInput | Prisma.SortOrder
+  coverUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   lines?: Prisma.LyricLineOrderByRelationAggregateInput
@@ -311,10 +338,13 @@ export type ProjectWhereUniqueInput = Prisma.AtLeast<{
   durationMs?: Prisma.IntFilter<"Project"> | number
   vocalStartMs?: Prisma.IntNullableFilter<"Project"> | number | null
   vocalEndMs?: Prisma.IntNullableFilter<"Project"> | number | null
+  creatorName?: Prisma.StringNullableFilter<"Project"> | string | null
+  templateId?: Prisma.StringFilter<"Project"> | string
+  templateConfig?: Prisma.StringNullableFilter<"Project"> | string | null
   template?: Prisma.StringNullableFilter<"Project"> | string | null
   singer?: Prisma.StringNullableFilter<"Project"> | string | null
   manualLyrics?: Prisma.StringNullableFilter<"Project"> | string | null
-  transcriptJson?: Prisma.StringNullableFilter<"Project"> | string | null
+  coverUrl?: Prisma.StringNullableFilter<"Project"> | string | null
   createdAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"Project"> | Date | string
   lines?: Prisma.LyricLineListRelationFilter
@@ -328,10 +358,13 @@ export type ProjectOrderByWithAggregationInput = {
   durationMs?: Prisma.SortOrder
   vocalStartMs?: Prisma.SortOrderInput | Prisma.SortOrder
   vocalEndMs?: Prisma.SortOrderInput | Prisma.SortOrder
+  creatorName?: Prisma.SortOrderInput | Prisma.SortOrder
+  templateId?: Prisma.SortOrder
+  templateConfig?: Prisma.SortOrderInput | Prisma.SortOrder
   template?: Prisma.SortOrderInput | Prisma.SortOrder
   singer?: Prisma.SortOrderInput | Prisma.SortOrder
   manualLyrics?: Prisma.SortOrderInput | Prisma.SortOrder
-  transcriptJson?: Prisma.SortOrderInput | Prisma.SortOrder
+  coverUrl?: Prisma.SortOrderInput | Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.ProjectCountOrderByAggregateInput
@@ -351,10 +384,13 @@ export type ProjectScalarWhereWithAggregatesInput = {
   durationMs?: Prisma.IntWithAggregatesFilter<"Project"> | number
   vocalStartMs?: Prisma.IntNullableWithAggregatesFilter<"Project"> | number | null
   vocalEndMs?: Prisma.IntNullableWithAggregatesFilter<"Project"> | number | null
+  creatorName?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
+  templateId?: Prisma.StringWithAggregatesFilter<"Project"> | string
+  templateConfig?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
   template?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
   singer?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
   manualLyrics?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
-  transcriptJson?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
+  coverUrl?: Prisma.StringNullableWithAggregatesFilter<"Project"> | string | null
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"Project"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"Project"> | Date | string
 }
@@ -366,10 +402,13 @@ export type ProjectCreateInput = {
   durationMs: number
   vocalStartMs?: number | null
   vocalEndMs?: number | null
+  creatorName?: string | null
+  templateId?: string
+  templateConfig?: string | null
   template?: string | null
   singer?: string | null
   manualLyrics?: string | null
-  transcriptJson?: string | null
+  coverUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   lines?: Prisma.LyricLineCreateNestedManyWithoutProjectInput
@@ -383,10 +422,13 @@ export type ProjectUncheckedCreateInput = {
   durationMs: number
   vocalStartMs?: number | null
   vocalEndMs?: number | null
+  creatorName?: string | null
+  templateId?: string
+  templateConfig?: string | null
   template?: string | null
   singer?: string | null
   manualLyrics?: string | null
-  transcriptJson?: string | null
+  coverUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   lines?: Prisma.LyricLineUncheckedCreateNestedManyWithoutProjectInput
@@ -400,10 +442,13 @@ export type ProjectUpdateInput = {
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   vocalStartMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vocalEndMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creatorName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateConfig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   template?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   singer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manualLyrics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  transcriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.LyricLineUpdateManyWithoutProjectNestedInput
@@ -417,10 +462,13 @@ export type ProjectUncheckedUpdateInput = {
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   vocalStartMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vocalEndMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creatorName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateConfig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   template?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   singer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manualLyrics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  transcriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.LyricLineUncheckedUpdateManyWithoutProjectNestedInput
@@ -434,10 +482,13 @@ export type ProjectCreateManyInput = {
   durationMs: number
   vocalStartMs?: number | null
   vocalEndMs?: number | null
+  creatorName?: string | null
+  templateId?: string
+  templateConfig?: string | null
   template?: string | null
   singer?: string | null
   manualLyrics?: string | null
-  transcriptJson?: string | null
+  coverUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -449,10 +500,13 @@ export type ProjectUpdateManyMutationInput = {
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   vocalStartMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vocalEndMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creatorName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateConfig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   template?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   singer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manualLyrics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  transcriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -464,10 +518,13 @@ export type ProjectUncheckedUpdateManyInput = {
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   vocalStartMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vocalEndMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creatorName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateConfig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   template?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   singer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manualLyrics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  transcriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -479,10 +536,13 @@ export type ProjectCountOrderByAggregateInput = {
   durationMs?: Prisma.SortOrder
   vocalStartMs?: Prisma.SortOrder
   vocalEndMs?: Prisma.SortOrder
+  creatorName?: Prisma.SortOrder
+  templateId?: Prisma.SortOrder
+  templateConfig?: Prisma.SortOrder
   template?: Prisma.SortOrder
   singer?: Prisma.SortOrder
   manualLyrics?: Prisma.SortOrder
-  transcriptJson?: Prisma.SortOrder
+  coverUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -500,10 +560,13 @@ export type ProjectMaxOrderByAggregateInput = {
   durationMs?: Prisma.SortOrder
   vocalStartMs?: Prisma.SortOrder
   vocalEndMs?: Prisma.SortOrder
+  creatorName?: Prisma.SortOrder
+  templateId?: Prisma.SortOrder
+  templateConfig?: Prisma.SortOrder
   template?: Prisma.SortOrder
   singer?: Prisma.SortOrder
   manualLyrics?: Prisma.SortOrder
-  transcriptJson?: Prisma.SortOrder
+  coverUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -515,10 +578,13 @@ export type ProjectMinOrderByAggregateInput = {
   durationMs?: Prisma.SortOrder
   vocalStartMs?: Prisma.SortOrder
   vocalEndMs?: Prisma.SortOrder
+  creatorName?: Prisma.SortOrder
+  templateId?: Prisma.SortOrder
+  templateConfig?: Prisma.SortOrder
   template?: Prisma.SortOrder
   singer?: Prisma.SortOrder
   manualLyrics?: Prisma.SortOrder
-  transcriptJson?: Prisma.SortOrder
+  coverUrl?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -597,10 +663,13 @@ export type ProjectCreateWithoutLinesInput = {
   durationMs: number
   vocalStartMs?: number | null
   vocalEndMs?: number | null
+  creatorName?: string | null
+  templateId?: string
+  templateConfig?: string | null
   template?: string | null
   singer?: string | null
   manualLyrics?: string | null
-  transcriptJson?: string | null
+  coverUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   jobs?: Prisma.JobCreateNestedManyWithoutProjectInput
@@ -613,10 +682,13 @@ export type ProjectUncheckedCreateWithoutLinesInput = {
   durationMs: number
   vocalStartMs?: number | null
   vocalEndMs?: number | null
+  creatorName?: string | null
+  templateId?: string
+  templateConfig?: string | null
   template?: string | null
   singer?: string | null
   manualLyrics?: string | null
-  transcriptJson?: string | null
+  coverUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   jobs?: Prisma.JobUncheckedCreateNestedManyWithoutProjectInput
@@ -645,10 +717,13 @@ export type ProjectUpdateWithoutLinesInput = {
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   vocalStartMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vocalEndMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creatorName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateConfig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   template?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   singer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manualLyrics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  transcriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   jobs?: Prisma.JobUpdateManyWithoutProjectNestedInput
@@ -661,10 +736,13 @@ export type ProjectUncheckedUpdateWithoutLinesInput = {
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   vocalStartMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vocalEndMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creatorName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateConfig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   template?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   singer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manualLyrics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  transcriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   jobs?: Prisma.JobUncheckedUpdateManyWithoutProjectNestedInput
@@ -677,10 +755,13 @@ export type ProjectCreateWithoutJobsInput = {
   durationMs: number
   vocalStartMs?: number | null
   vocalEndMs?: number | null
+  creatorName?: string | null
+  templateId?: string
+  templateConfig?: string | null
   template?: string | null
   singer?: string | null
   manualLyrics?: string | null
-  transcriptJson?: string | null
+  coverUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   lines?: Prisma.LyricLineCreateNestedManyWithoutProjectInput
@@ -693,10 +774,13 @@ export type ProjectUncheckedCreateWithoutJobsInput = {
   durationMs: number
   vocalStartMs?: number | null
   vocalEndMs?: number | null
+  creatorName?: string | null
+  templateId?: string
+  templateConfig?: string | null
   template?: string | null
   singer?: string | null
   manualLyrics?: string | null
-  transcriptJson?: string | null
+  coverUrl?: string | null
   createdAt?: Date | string
   updatedAt?: Date | string
   lines?: Prisma.LyricLineUncheckedCreateNestedManyWithoutProjectInput
@@ -725,10 +809,13 @@ export type ProjectUpdateWithoutJobsInput = {
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   vocalStartMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vocalEndMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creatorName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateConfig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   template?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   singer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manualLyrics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  transcriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.LyricLineUpdateManyWithoutProjectNestedInput
@@ -741,10 +828,13 @@ export type ProjectUncheckedUpdateWithoutJobsInput = {
   durationMs?: Prisma.IntFieldUpdateOperationsInput | number
   vocalStartMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   vocalEndMs?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  creatorName?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  templateId?: Prisma.StringFieldUpdateOperationsInput | string
+  templateConfig?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   template?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   singer?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   manualLyrics?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  transcriptJson?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  coverUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   lines?: Prisma.LyricLineUncheckedUpdateManyWithoutProjectNestedInput
@@ -797,10 +887,13 @@ export type ProjectSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   durationMs?: boolean
   vocalStartMs?: boolean
   vocalEndMs?: boolean
+  creatorName?: boolean
+  templateId?: boolean
+  templateConfig?: boolean
   template?: boolean
   singer?: boolean
   manualLyrics?: boolean
-  transcriptJson?: boolean
+  coverUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
   lines?: boolean | Prisma.Project$linesArgs<ExtArgs>
@@ -815,10 +908,13 @@ export type ProjectSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   durationMs?: boolean
   vocalStartMs?: boolean
   vocalEndMs?: boolean
+  creatorName?: boolean
+  templateId?: boolean
+  templateConfig?: boolean
   template?: boolean
   singer?: boolean
   manualLyrics?: boolean
-  transcriptJson?: boolean
+  coverUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["project"]>
@@ -830,10 +926,13 @@ export type ProjectSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   durationMs?: boolean
   vocalStartMs?: boolean
   vocalEndMs?: boolean
+  creatorName?: boolean
+  templateId?: boolean
+  templateConfig?: boolean
   template?: boolean
   singer?: boolean
   manualLyrics?: boolean
-  transcriptJson?: boolean
+  coverUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["project"]>
@@ -845,15 +944,18 @@ export type ProjectSelectScalar = {
   durationMs?: boolean
   vocalStartMs?: boolean
   vocalEndMs?: boolean
+  creatorName?: boolean
+  templateId?: boolean
+  templateConfig?: boolean
   template?: boolean
   singer?: boolean
   manualLyrics?: boolean
-  transcriptJson?: boolean
+  coverUrl?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "audioPath" | "durationMs" | "vocalStartMs" | "vocalEndMs" | "template" | "singer" | "manualLyrics" | "transcriptJson" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
+export type ProjectOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "audioPath" | "durationMs" | "vocalStartMs" | "vocalEndMs" | "creatorName" | "templateId" | "templateConfig" | "template" | "singer" | "manualLyrics" | "coverUrl" | "createdAt" | "updatedAt", ExtArgs["result"]["project"]>
 export type ProjectInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   lines?: boolean | Prisma.Project$linesArgs<ExtArgs>
   jobs?: boolean | Prisma.Project$jobsArgs<ExtArgs>
@@ -875,10 +977,13 @@ export type $ProjectPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     durationMs: number
     vocalStartMs: number | null
     vocalEndMs: number | null
+    creatorName: string | null
+    templateId: string
+    templateConfig: string | null
     template: string | null
     singer: string | null
     manualLyrics: string | null
-    transcriptJson: string | null
+    coverUrl: string | null
     createdAt: Date
     updatedAt: Date
   }, ExtArgs["result"]["project"]>
@@ -1312,10 +1417,13 @@ export interface ProjectFieldRefs {
   readonly durationMs: Prisma.FieldRef<"Project", 'Int'>
   readonly vocalStartMs: Prisma.FieldRef<"Project", 'Int'>
   readonly vocalEndMs: Prisma.FieldRef<"Project", 'Int'>
+  readonly creatorName: Prisma.FieldRef<"Project", 'String'>
+  readonly templateId: Prisma.FieldRef<"Project", 'String'>
+  readonly templateConfig: Prisma.FieldRef<"Project", 'String'>
   readonly template: Prisma.FieldRef<"Project", 'String'>
   readonly singer: Prisma.FieldRef<"Project", 'String'>
   readonly manualLyrics: Prisma.FieldRef<"Project", 'String'>
-  readonly transcriptJson: Prisma.FieldRef<"Project", 'String'>
+  readonly coverUrl: Prisma.FieldRef<"Project", 'String'>
   readonly createdAt: Prisma.FieldRef<"Project", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"Project", 'DateTime'>
 }

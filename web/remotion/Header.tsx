@@ -58,6 +58,7 @@ export const Header: React.FC<HeaderProps> = ({ title, username = '音乐', sing
           alignItems: 'baseline',
           gap: 24,
           marginTop: 84,
+          marginBottom: 40,
           flexWrap: 'wrap',
         }}
       >

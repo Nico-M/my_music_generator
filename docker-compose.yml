@@ -1,6 +1,8 @@
-# Singing Video Generator — Docker Compose MVP
-# Two containers: web (Next.js) + worker (Python)
-# Shared volume: ./data for SQLite DB, uploads, and renders
+# Singing Video Generator — Docker Compose
+# Single service: web (Next.js). SQLite, uploads and renders all live in ./data.
+#
+# Lyric recognition and alignment run against external APIs (MiniMax ASR and
+# the lrc.cx lyrics library), so no local ML container is needed.
 
 services:
   web:
@@ -16,18 +18,4 @@ services:
       - DATABASE_URL=file:/data/sqlite.db
       - UPLOADS_DIR=/data/uploads
       - RENDERS_DIR=/data/renders
-    depends_on:
-      - worker
-    restart: unless-stopped
-
-  worker:
-    build:
-      context: ./worker
-      dockerfile: Dockerfile
-    volumes:
-      - ./data:/data
-    environment:
-      - DATA_DIR=/data
-      - DATABASE_PATH=/data/sqlite.db
-      - UPLOADS_DIR=/data/uploads
     restart: unless-stopped

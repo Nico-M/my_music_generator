@@ -1,6 +1,6 @@
 # Singing Video Generator
 
-![站点截图](assets/Screenshot_singvid.jpeg)
+![站点截图](assets/Screenshot_singvid.jpg)
 
 ## 简介
 
@@ -11,97 +11,109 @@
 ## 核心功能
 
 - **录音上传** — 支持 MP3、WAV、M4A、OGG 等常见音频格式
-- **智能转写** — 自动识别录音中的歌词/语音内容
-- **时间轴对齐** — 将歌词行精确对齐到录音的时间位置
+- **歌词识别** — 自动识别歌词文字，并对齐到录音的时间位置
+- **时间线校准** — 逐行微调时间，文字与时间线同源同步
 - **多模板选择** — 可选不同的视觉风格与排布方式
 - **视频渲染** — 基于 Remotion 引擎生成高质量 MP4 视频
 - **成品下载** — 一键下载渲染完成的视频文件
 
+<p align="center">
+  <img src="assets/screen-shot-01.jpg" alt="编辑器工作台" width="820">
+</p>
+
 ## 使用流程
 
-1. 创建一个项目，上传你的录音文件
-2. 选择录音的语言，启动转写（自动生成歌词文本）
-3. 根据需要编辑歌词，或使用时间轴对齐工具精调
+1. 创建一个项目，填写歌曲名与歌手，上传录音文件
+2. 点击「识别歌词」，自动生成歌词与时间线
+3. 切到「时间线」微调时间或修正文字
 4. 选择一个喜欢的视觉模板
 5. 点击渲染，等待视频生成
 6. 下载最终的 MP4 视频
 
-## 本地运行
+<p align="center">
+  <img src="assets/screen-shot-02.jpg" alt="时间线对齐" width="820">
+</p>
 
-项目基于 Next.js（Web 端）+ Python（后台 Worker）架构。Web 端负责项目管理、上传和任务入库，Worker 负责消费 SQLite 里的转写/对齐任务。
+## 架构
 
-### 方式一：Docker Compose
+单个 Next.js 服务，无本地机器学习依赖：
 
-使用 Docker Compose 启动 Web 和 Worker：
-
-```bash
-docker compose up --build
+```
+┌────────────────────────────────────────────────────────────┐
+│  web/  (Next.js)                                           │
+│  项目管理、上传、歌词识别、时间线校准、预览、渲染调度          │
+│  独占 SQLite                                                 │
+└──────┬──────────────────────────────┬──────────────────────┘
+       │ HTTP                         │ HTTP
+       ▼                              ▼
+┌────────────────────┐      ┌──────────────────────┐
+│ MiniMax ASR        │      │ 歌词库 (api.lrc.cx)   │
+│ 本录音的逐字时间戳   │      │ 准确的歌词文字         │
+└────────────────────┘      └──────────────────────┘
 ```
 
-Web 服务默认运行在 `http://localhost:3000`。
+识别歌词时并行使用两个来源，各取所长：
 
-如果是首次运行，先确认共享数据目录存在，并用 Prisma 初始化 SQLite 表结构：
+- **MiniMax ASR** 提供时间轴 —— 它识别的是**你自己唱的这版录音**，逐字给出时间戳
+- **歌词库** 提供歌词文字 —— 语音识别在歌唱场景下错字多，歌词库的文字才是准的
+
+歌词库自带的时间轴会被丢弃：那对应的是原版录音，与你的演唱速度、编曲都不同。歌词文字通过**拼音对齐**映射到 ASR 的时间戳上 —— 拼音层不受简繁差异影响（`听` / `聽` 同为 `ting`）。
+
+歌词库未命中、或匹配度过低时，降级为「ASR 原文 + LLM 断句」，并会在界面上提示歌词可能有错字，需要手动校正。
+
+## 外部服务
+
+本项目依赖以下第三方服务，使用前请了解各自的条款：
+
+| 服务 | 用途 | 说明 |
+|---|---|---|
+| [MiniMax 开放平台](https://platform.minimaxi.com/) | 语音识别（`/v1/speech_to_text`） | 需要自备 API Key，按音频时长计费；单次上限 500 秒、50 MB。歌词库未命中时还会调用其文本模型做断句 |
+| [api.lrc.cx](https://api.lrc.cx/) | 歌词库 | 公开接口，无需认证。用于获取准确歌词文字；其自带的时间轴不被采用 |
+
+音频会上传至 MiniMax 用于识别，歌曲名与歌手名会发送至歌词库查询。API Key 仅保存在浏览器 `localStorage`，不会写入数据库。
+
+## 本地运行
+
+### 前置要求
+
+- Node.js 18+ 与 npm
+- MiniMax API Key（用于歌词识别）
+
+### 启动
 
 ```bash
 mkdir -p data/uploads data/renders
 cd web
-npx prisma db push
-cd ..
-docker compose up --build
-```
-
-### 方式二：本地开发启动
-
-1. 安装 Web 依赖：
-
-```bash
-cd web
 npm install
-```
-
-2. 初始化 SQLite 数据库：
-
-```bash
-mkdir -p ../data/uploads ../data/renders
 npx prisma db push
-```
-
-`prisma.config.ts` 默认会把数据库创建到 `../data/sqlite.db`。如果需要自定义路径，可以设置：
-
-```bash
-DATABASE_URL=file:/absolute/path/to/sqlite.db
-```
-
-3. 启动 Web：
-
-```bash
 npm run dev
 ```
 
-4. 安装并启动 Worker：
+默认运行在 `http://localhost:3000`。首次打开后在右上角「API Key 设置」填入 MiniMax API Key。
 
-```bash
-cd ../worker
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-python main.py
-```
+### 功能与依赖对照
 
-Worker 正常启动后会输出类似：
-
-```text
-Worker started. Polling .../data/sqlite.db every 5s...
-```
+| 功能 | 依赖 | 不可用时 |
+|---|---|---|
+| 项目管理、时间线校准、预览、渲染、下载 | 无外部依赖 | — |
+| 识别歌词 | MiniMax ASR + 歌词库 | 缺少 API Key 时自动弹出配置窗口 |
 
 ### 常见问题
 
-- 如果执行 `python main.py` 提示 `python: command not found`，先运行 `source .venv/bin/activate`，或直接用 `.venv/bin/python main.py`。
-- 如果 Worker 报 `sqlite3.OperationalError: unable to open database file`，通常是还没有创建 `data` 目录或没有执行 `npx prisma db push`。
-- `faster-whisper` 会在首次转写时下载模型，首次执行需要网络，并且耗时会更长。
+- **`sqlite3.OperationalError: unable to open database file`** — 通常是没创建 `data/` 目录，或没执行 `npx prisma db push`。
+- **识别报「时长超过 500 秒上限」** — MiniMax ASR 单次最长 500 秒，超出会直接拒绝而不会截断。
+- **识别报「歌词库未找到」** — 该项目未填写歌手名，或歌曲太冷门。此时歌词来自语音识别，会有错字，需在时间线里手动校正。
+- **时间线两行之间有空档** — 点时间线上方的「自动补尾」，会把上一行的结束时间延续到下一行开始；已经衔接或刻意重叠的行不会被改动。
 
 ## 效果示例
 
 <p align="center">
+  <img src="assets/screen-shot-03.jpg" alt="渲染输出" width="820">
+</p>
+
+<p align="center">
   <img src="assets/output_example.png" alt="输出视频示例" width="540">
 </p>
+
+### 参考开源项目: 
+- https://github.com/HisAtri/LrcApi

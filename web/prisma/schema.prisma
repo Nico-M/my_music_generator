@@ -19,14 +19,18 @@ model Project {
   // optional fields for vocal range trimming
   vocalStartMs Int?
   vocalEndMs   Int?
-  // template config (JSON-serialized)
-  template    String?
+  // template system (phase 2)
+  creatorName    String?
+  templateId     String  @default("notes")
+  templateConfig String?
+  // legacy template config (JSON-serialized) for migration window
+  template       String?
   // singer/artist name — shown as subtitle in rendered video
   singer      String?
   // optional initial lyrics text entered during project creation
   manualLyrics String?
-  // full ASR result with word-level timestamps
-  transcriptJson String?
+  // album cover image URL
+  coverUrl    String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -42,7 +46,7 @@ model LyricLine {
   text      String
   startMs   Int?
   endMs     Int?
-  source    String  @default("manual") // manual | transcribed | transcribed-aligned | weighted | aligned | lrc
+  source    String  @default("manual") // manual | transcribed | lrc-aligned; transcribed-aligned/weighted/aligned are legacy rows
   confidence Float?
 
   projectId String
@@ -54,7 +58,7 @@ model LyricLine {
 // ─── Job ───
 model Job {
   id         String  @id @default(cuid())
-  type       String  // transcribe | align | render
+  type       String  // transcribe | render
   status     String  // queued | running | done | failed
   error      String?
   resultPath String?

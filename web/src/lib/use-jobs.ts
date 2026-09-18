@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 
 export interface TrackedJob {
   jobId: string;
-  type: 'transcribe' | 'render' | 'align';
+  type: 'transcribe' | 'render';
   status: 'queued' | 'running' | 'done' | 'failed';
   error?: string;
   resultPath?: string;

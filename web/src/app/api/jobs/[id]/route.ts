@@ -18,6 +18,7 @@ export async function GET(
         status: true,
         error: true,
         resultPath: true,
+        params: true,
         createdAt: true,
         updatedAt: true,
         projectId: true,

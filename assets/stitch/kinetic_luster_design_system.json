@@ -1,0 +1,155 @@
+{
+  "designSystem": {
+    "displayName": "Kinetic Luster",
+    "styleGuidelines": "## Brand & Style\n\nThis design system establishes an airy, high-energy, creative production environment tailored for modern short-form video creators, digital beatmakers, and visual storytellers. The aesthetic moves decisively away from the typical dark, brooding interfaces of legacy audio workstations and complex rendering suites. Instead, it embraces an ultra-clean, daylight-infused studio aesthetic where advanced generative AI feels immediate, frictionless, and playful.\n\n### Design Movement & Aesthetic\nThe visual language fuses **Modern Crisp Minimalism** with **Prismatic Creative Accents**:\n- **Airy Luminance:** Expansive pure white canvases and porcelain-tinted secondary planes replace heavy structural dividers, creating a zero-gravity feel.\n- **Electric Precision:** High-chroma violet-indigo and energetic coral accents deliver instantaneous feedback and guide creative flow without visual clutter.\n- **Soft Tactility:** Large-radius cards, pill-shaped triggers, and featherweight ambient shadows convey an approachable, tactile software surface reminiscent of polished physical creative hardware.\n\n## Layout & Spacing\n\nThe layout philosophy balances a flexible 12-column grid for creation dashboards with dedicated safe zones for video viewport aspect ratios (vertical 9:16 TikTok/Reels/Shorts framing).\n\n### Responsive Adaptation\n- **Desktop (1024px+):** Fluid 12-column grid with a pinned or collapsible floating parameter dock. The live canvas viewport commands center-stage with persistent porcelain track controls beneath. Gutters sit at `1.5rem`, outer canvas margins at `2rem`.\n- **Tablet (768px – 1023px):** 8-column layout. The live preview and prompt controller stack vertically over a collapsible horizontal audio-timeline strip.\n- **Mobile (< 768px):** Single-column layout. Margin shrinks to `1rem` and gutters compress to `0.75rem`. Controls collapse into bottom floating sheets and contextual swipe-accessible drawers.\n\n## Elevation & Depth\n\nVisual hierarchy uses ethereal, tinted ambient shadows alongside crisp hairline outlines to reject dark workstation claustrophobia.\n\n### Surface Tiers\n- **Tier 0 (Background Canvas):** Pure `#ffffff`. Flat, zero shadow.\n- **Tier 1 (Porcelain Container):** `#f8fafc` surface bounded by a razor-thin `#e2e8f0` stroke. Zero shadow; structural separation achieved through pure tonal contrast.\n- **Tier 2 (Floating Cards & Modals):** Pure white `#ffffff` elevated via low-opacity ambient drop shadows:\n  - `shadow-sm`: `0 2px 4px -1px rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02)`\n  - `shadow-md`: `0 8px 24px -4px rgba(99, 102, 241, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04)`\n- **Tier 3 (Active Video Overlays & Dragged Elements):** Pure white with indigo-tinted radiance (`0 20px 32px -8px rgba(99, 102, 241, 0.16)`).\n\n## Components\n\n### Buttons\n- **Primary Generator Button:** Pill or `rounded-lg` shape filled with `#6366f1` (Electric Indigo), high-contrast white text, subtle hover lift, and an active state shifting to coral glow (`#f43f5e`).\n- **Secondary Action Button:** Porcelain background (`#f1f5f9`), slate text (`#0f172a`), border `#e2e8f0`. On hover, background lightens to pure `#ffffff` with an ambient indigo-tinted shadow.\n- **Ghost Action Button:** Transparent background, slate icon and text, shifting to `#f8fafc` on hover.\n\n### Chips & Style Filters\n- Pill-shaped tags (`rounded-full`) with `#f1f5f9` backgrounds and `#475569` text for audio tempo, visual style presets (e.g., *Cyber-LoFi*, *Hyper-Pop*, *Claymation*), and duration tokens.\n- Active state transitions immediately to `#6366f1` background with crisp white typography or `#0ea5e9` outline highlight.\n\n### Input Fields & Prompt Box\n- Large-radius prompt text areas (`rounded-xl`), bordered with `#e2e8f0` over pure `#ffffff`.\n- Focus shifts border to `#6366f1` with a `0 0 0 3px rgba(99, 102, 241, 0.12)` glow ring.\n- Integrated quick-action chips inside the prompt container for instant style seeding.\n\n### Cards & Aspect Ratio Tiles\n- Video ratio preview cards (e.g., 9:16 Vertical, 1:1 Square, 16:9 Landscape) set on `#f8fafc` surfaces with `1.5rem` radius.\n- Active card selection displays a 2px `#6366f1` border and a soft ambient shadow lift.\n\n### Audio Waveform & Timeline Wells\n- Recessed containers using `#f1f5f9` base with inset contrast.\n- Visual audio frequency bars use `#cbd5e1` for unplayed tracks, transforming into dynamic energetic gradients of `#6366f1` to `#f43f5e` as the playhead advances.\n- Draggable beat-sync cue markers styled as bright coral `#f43f5e` pins.\n\n### Checkboxes & Radios\n- `rounded` for checkboxes, circular for radios. Inactive border `#cbd5e1`, active fill `#6366f1` featuring a crisp white SVG check icon.",
+    "theme": {
+      "bodyFont": "PLUS_JAKARTA_SANS",
+      "bodyFontFamily": "Plus Jakarta Sans",
+      "colorMode": "LIGHT",
+      "colorVariant": "FIDELITY",
+      "customColor": "#6366f1",
+      "designMd": "---\nname: Kinetic Luster\ncolors:\n  surface: '#faf8ff'\n  surface-dim: '#d2d9f4'\n  surface-bright: '#faf8ff'\n  surface-container-lowest: '#ffffff'\n  surface-container-low: '#f2f3ff'\n  surface-container: '#eaedff'\n  surface-container-high: '#e2e7ff'\n  surface-container-highest: '#dae2fd'\n  on-surface: '#131b2e'\n  on-surface-variant: '#464554'\n  inverse-surface: '#283044'\n  inverse-on-surface: '#eef0ff'\n  outline: '#767586'\n  outline-variant: '#c7c4d7'\n  surface-tint: '#494bd6'\n  primary: '#4648d4'\n  on-primary: '#ffffff'\n  primary-container: '#6063ee'\n  on-primary-container: '#fffbff'\n  inverse-primary: '#c0c1ff'\n  secondary: '#b90538'\n  on-secondary: '#ffffff'\n  secondary-container: '#dc2c4f'\n  on-secondary-container: '#fffbff'\n  tertiary: '#00628d'\n  on-tertiary: '#ffffff'\n  tertiary-container: '#007cb1'\n  on-tertiary-container: '#fcfcff'\n  error: '#ba1a1a'\n  on-error: '#ffffff'\n  error-container: '#ffdad6'\n  on-error-container: '#93000a'\n  primary-fixed: '#e1e0ff'\n  primary-fixed-dim: '#c0c1ff'\n  on-primary-fixed: '#07006c'\n  on-primary-fixed-variant: '#2f2ebe'\n  secondary-fixed: '#ffdadb'\n  secondary-fixed-dim: '#ffb2b7'\n  on-secondary-fixed: '#40000d'\n  on-secondary-fixed-variant: '#92002a'\n  tertiary-fixed: '#c9e6ff'\n  tertiary-fixed-dim: '#89ceff'\n  on-tertiary-fixed: '#001e2f'\n  on-tertiary-fixed-variant: '#004c6e'\n  background: '#faf8ff'\n  on-background: '#131b2e'\n  surface-variant: '#dae2fd'\ntypography:\n  display:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 48px\n    fontWeight: '800'\n    lineHeight: 56px\n  headline-lg:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 36px\n    fontWeight: '700'\n    lineHeight: 44px\n  headline-lg-mobile:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 28px\n    fontWeight: '700'\n    lineHeight: 36px\n  headline-md:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 24px\n    fontWeight: '600'\n    lineHeight: 32px\n  headline-sm:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 20px\n    fontWeight: '600'\n    lineHeight: 28px\n  body-lg:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 18px\n    fontWeight: '400'\n    lineHeight: 28px\n  body-md:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 15px\n    fontWeight: '400'\n    lineHeight: 24px\n  body-sm:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 13px\n    fontWeight: '400'\n    lineHeight: 20px\n  label-lg:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 14px\n    fontWeight: '600'\n    lineHeight: 20px\n  label-md:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 12px\n    fontWeight: '600'\n    lineHeight: 16px\n  label-sm:\n    fontFamily: Plus Jakarta Sans\n    fontSize: 10px\n    fontWeight: '700'\n    lineHeight: 14px\nrounded:\n  sm: 0.25rem\n  DEFAULT: 0.5rem\n  md: 0.75rem\n  lg: 1rem\n  xl: 1.5rem\n  full: 9999px\nspacing:\n  gutter: 1.5rem\n  gutter-mobile: 0.75rem\n  margin: 2rem\n  margin-mobile: 1rem\n  space-xs: 0.25rem\n  space-sm: 0.5rem\n  space-md: 1rem\n  space-lg: 1.5rem\n  space-xl: 2.5rem\n---\n\n## Brand & Style\n\nThis design system establishes an airy, high-energy, creative production environment tailored for modern short-form video creators, digital beatmakers, and visual storytellers. The aesthetic moves decisively away from the typical dark, brooding interfaces of legacy audio workstations and complex rendering suites. Instead, it embraces an ultra-clean, daylight-infused studio aesthetic where advanced generative AI feels immediate, frictionless, and playful.\n\n### Design Movement & Aesthetic\nThe visual language fuses **Modern Crisp Minimalism** with **Prismatic Creative Accents**:\n- **Airy Luminance:** Expansive pure white canvases and porcelain-tinted secondary planes replace heavy structural dividers, creating a zero-gravity feel.\n- **Electric Precision:** High-chroma violet-indigo and energetic coral accents deliver instantaneous feedback and guide creative flow without visual clutter.\n- **Soft Tactility:** Large-radius cards, pill-shaped triggers, and featherweight ambient shadows convey an approachable, tactile software surface reminiscent of polished physical creative hardware.\n\n## Colors\n\nThe palette is tuned specifically for daylight creative flow, combining high-contrast slate typography with high-vibrancy kinetic accents.\n\n### Color Roles & Hierarchy\n- **Canvas Base (`#ffffff`):** Pure white primary canvas, lending an open, studio-grade negative space.\n- **Surface Elevation (`#f8fafc` & `#f1f5f9`):** Porcelain grey tiers used for track lanes, inspector panels, timeline wells, and inactive module cards.\n- **Primary Accent (`#6366f1` Electric Indigo):** Reserved for primary calls to action, active AI generation states, selected waveform regions, and master rendering triggers.\n- **Secondary Accent (`#f43f5e` Energetic Coral):** Expressive creative pulse used for beat markers, audio cue drops, real-time recording/listening states, and high-impact micro-interactions.\n- **Tertiary Accent (`#0ea5e9` Fresh Cyan):** Technical clarity indicator, applied to video aspect ratio toggles (9:16 vs 1:1), prompt synthesis badges, audio stems, and sync progress rings.\n- **Structural Neutral (`#0f172a` Deep Slate):** Primary text and icon color, delivering razor-sharp contrast against pure white and porcelain backdrops.\n- **Subtle Boundaries (`#e2e8f0` & `#cbd5e1`):** Micro-borders for containment and partition lines without harsh structural noise.\n\n## Typography\n\nThe type system relies completely on **Plus Jakarta Sans**, chosen for its crisp geometric structure, wide apertures, and friendly contemporary terminal curves.\n\n### Typographic Principles\n- **Weight Contrast:** Pair expressive heavy weights (`700` and `800`) on headlines with balanced, neutral body weights (`400`) to guide instant visual scanning across short-form generation controls.\n- **Pacing & Breathing Room:** Generous line heights prevent technical metadata (BPM, frame rates, generation tokens) from feeling dense.\n- **Labels & Micro-data:** Micro-labels (`label-sm` and `label-md`) must use uppercase transforms with slight letter spacing (`0.05em`) to balance readability against intense visual assets like generated video previews.\n\n## Layout & Spacing\n\nThe layout philosophy balances a flexible 12-column grid for creation dashboards with dedicated safe zones for video viewport aspect ratios (vertical 9:16 TikTok/Reels/Shorts framing).\n\n### Responsive Adaptation\n- **Desktop (1024px+):** Fluid 12-column grid with a pinned or collapsible floating parameter dock. The live canvas viewport commands center-stage with persistent porcelain track controls beneath. Gutters sit at `1.5rem`, outer canvas margins at `2rem`.\n- **Tablet (768px – 1023px):** 8-column layout. The live preview and prompt controller stack vertically over a collapsible horizontal audio-timeline strip.\n- **Mobile (< 768px):** Single-column layout. Margin shrinks to `1rem` and gutters compress to `0.75rem`. Controls collapse into bottom floating sheets and contextual swipe-accessible drawers.\n\n## Elevation & Depth\n\nVisual hierarchy uses ethereal, tinted ambient shadows alongside crisp hairline outlines to reject dark workstation claustrophobia.\n\n### Surface Tiers\n- **Tier 0 (Background Canvas):** Pure `#ffffff`. Flat, zero shadow.\n- **Tier 1 (Porcelain Container):** `#f8fafc` surface bounded by a razor-thin `#e2e8f0` stroke. Zero shadow; structural separation achieved through pure tonal contrast.\n- **Tier 2 (Floating Cards & Modals):** Pure white `#ffffff` elevated via low-opacity ambient drop shadows:\n  - `shadow-sm`: `0 2px 4px -1px rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02)`\n  - `shadow-md`: `0 8px 24px -4px rgba(99, 102, 241, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04)`\n- **Tier 3 (Active Video Overlays & Dragged Elements):** Pure white with indigo-tinted radiance (`0 20px 32px -8px rgba(99, 102, 241, 0.16)`).\n\n## Shapes\n\nThe design system embraces generous, friendly geometry that mitigates creator intimidation and enhances touch/click confidence.\n\n### Corner Radius System\n- **Micro UI (`0.5rem` / `rounded`):** Checkbox boxes, dropdown tags, slider handles, and timeline playheads.\n- **Interactive Controls (`1rem` / `rounded-lg`):** Text input fields, contextual action toolbars, select pickers, and playback controls.\n- **Cards & Viewports (`1.5rem` / `rounded-xl`):** Primary canvas preview frames, audio waveform wells, prompt generation boxes, and asset drawers.\n- **Pill Architecture (`9999px`):** Status indicators, action pills, chip tags, and quick-add preset buttons.\n\n## Components\n\n### Buttons\n- **Primary Generator Button:** Pill or `rounded-lg` shape filled with `#6366f1` (Electric Indigo), high-contrast white text, subtle hover lift, and an active state shifting to coral glow (`#f43f5e`).\n- **Secondary Action Button:** Porcelain background (`#f1f5f9`), slate text (`#0f172a`), border `#e2e8f0`. On hover, background lightens to pure `#ffffff` with an ambient indigo-tinted shadow.\n- **Ghost Action Button:** Transparent background, slate icon and text, shifting to `#f8fafc` on hover.\n\n### Chips & Style Filters\n- Pill-shaped tags (`rounded-full`) with `#f1f5f9` backgrounds and `#475569` text for audio tempo, visual style presets (e.g., *Cyber-LoFi*, *Hyper-Pop*, *Claymation*), and duration tokens.\n- Active state transitions immediately to `#6366f1` background with crisp white typography or `#0ea5e9` outline highlight.\n\n### Input Fields & Prompt Box\n- Large-radius prompt text areas (`rounded-xl`), bordered with `#e2e8f0` over pure `#ffffff`.\n- Focus shifts border to `#6366f1` with a `0 0 0 3px rgba(99, 102, 241, 0.12)` glow ring.\n- Integrated quick-action chips inside the prompt container for instant style seeding.\n\n### Cards & Aspect Ratio Tiles\n- Video ratio preview cards (e.g., 9:16 Vertical, 1:1 Square, 16:9 Landscape) set on `#f8fafc` surfaces with `1.5rem` radius.\n- Active card selection displays a 2px `#6366f1` border and a soft ambient shadow lift.\n\n### Audio Waveform & Timeline Wells\n- Recessed containers using `#f1f5f9` base with inset contrast.\n- Visual audio frequency bars use `#cbd5e1` for unplayed tracks, transforming into dynamic energetic gradients of `#6366f1` to `#f43f5e` as the playhead advances.\n- Draggable beat-sync cue markers styled as bright coral `#f43f5e` pins.\n\n### Checkboxes & Radios\n- `rounded` for checkboxes, circular for radios. Inactive border `#cbd5e1`, active fill `#6366f1` featuring a crisp white SVG check icon.",
+      "font": "PLUS_JAKARTA_SANS",
+      "headlineFont": "PLUS_JAKARTA_SANS",
+      "headlineFontFamily": "Plus Jakarta Sans",
+      "labelFont": "PLUS_JAKARTA_SANS",
+      "labelFontFamily": "Plus Jakarta Sans",
+      "namedColors": {
+        "background": "#faf8ff",
+        "error": "#ba1a1a",
+        "error_container": "#ffdad6",
+        "inverse_on_surface": "#eef0ff",
+        "inverse_primary": "#c0c1ff",
+        "inverse_surface": "#283044",
+        "on_background": "#131b2e",
+        "on_error": "#ffffff",
+        "on_error_container": "#93000a",
+        "on_primary": "#ffffff",
+        "on_primary_container": "#fffbff",
+        "on_primary_fixed": "#07006c",
+        "on_primary_fixed_variant": "#2f2ebe",
+        "on_secondary": "#ffffff",
+        "on_secondary_container": "#fffbff",
+        "on_secondary_fixed": "#40000d",
+        "on_secondary_fixed_variant": "#92002a",
+        "on_surface": "#131b2e",
+        "on_surface_variant": "#464554",
+        "on_tertiary": "#ffffff",
+        "on_tertiary_container": "#fcfcff",
+        "on_tertiary_fixed": "#001e2f",
+        "on_tertiary_fixed_variant": "#004c6e",
+        "outline": "#767586",
+        "outline_variant": "#c7c4d7",
+        "primary": "#4648d4",
+        "primary_container": "#6063ee",
+        "primary_fixed": "#e1e0ff",
+        "primary_fixed_dim": "#c0c1ff",
+        "secondary": "#b90538",
+        "secondary_container": "#dc2c4f",
+        "secondary_fixed": "#ffdadb",
+        "secondary_fixed_dim": "#ffb2b7",
+        "surface": "#faf8ff",
+        "surface_bright": "#faf8ff",
+        "surface_container": "#eaedff",
+        "surface_container_high": "#e2e7ff",
+        "surface_container_highest": "#dae2fd",
+        "surface_container_low": "#f2f3ff",
+        "surface_container_lowest": "#ffffff",
+        "surface_dim": "#d2d9f4",
+        "surface_tint": "#494bd6",
+        "surface_variant": "#dae2fd",
+        "tertiary": "#00628d",
+        "tertiary_container": "#007cb1",
+        "tertiary_fixed": "#c9e6ff",
+        "tertiary_fixed_dim": "#89ceff"
+      },
+      "overrideNeutralColor": "#0f172a",
+      "overridePrimaryColor": "#6366f1",
+      "overrideSecondaryColor": "#f43f5e",
+      "overrideTertiaryColor": "#0ea5e9",
+      "roundness": "ROUND_EIGHT",
+      "spacing": {
+        "gutter": "1.5rem",
+        "gutter-mobile": "0.75rem",
+        "margin": "2rem",
+        "margin-mobile": "1rem",
+        "space-lg": "1.5rem",
+        "space-md": "1rem",
+        "space-sm": "0.5rem",
+        "space-xl": "2.5rem",
+        "space-xs": "0.25rem"
+      },
+      "spacingScale": 2,
+      "typography": {
+        "body-lg": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "18px",
+          "fontWeight": "400",
+          "lineHeight": "28px"
+        },
+        "body-md": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "24px"
+        },
+        "body-sm": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "13px",
+          "fontWeight": "400",
+          "lineHeight": "20px"
+        },
+        "display": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "48px",
+          "fontWeight": "800",
+          "lineHeight": "56px"
+        },
+        "headline-lg": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "36px",
+          "fontWeight": "700",
+          "lineHeight": "44px"
+        },
+        "headline-lg-mobile": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "28px",
+          "fontWeight": "700",
+          "lineHeight": "36px"
+        },
+        "headline-md": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "24px",
+          "fontWeight": "600",
+          "lineHeight": "32px"
+        },
+        "headline-sm": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "20px",
+          "fontWeight": "600",
+          "lineHeight": "28px"
+        },
+        "label-lg": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "14px",
+          "fontWeight": "600",
+          "lineHeight": "20px"
+        },
+        "label-md": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "12px",
+          "fontWeight": "600",
+          "lineHeight": "16px"
+        },
+        "label-sm": {
+          "fontFamily": "Plus Jakarta Sans",
+          "fontSize": "10px",
+          "fontWeight": "700",
+          "lineHeight": "14px"
+        }
+      }
+    }
+  },
+  "name": "assets/bcf45a5090fd4f8a995c8063c258181d",
+  "version": "1"
+}

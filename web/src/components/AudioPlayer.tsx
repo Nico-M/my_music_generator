@@ -3,7 +3,7 @@
 import { useRef, useEffect, useCallback } from 'react';
 import { useEditorStore } from '@/lib/store';
 import { useI18n } from './LanguageProvider';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause } from '@/components/icons/IonIcons';
 
 interface AudioPlayerProps {
   audioUrl: string;

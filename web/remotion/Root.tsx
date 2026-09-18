@@ -1,24 +1,27 @@
-// Remotion Root — registers the LyricVideo composition
-
 import React from 'react';
 import { Composition } from 'remotion';
 import type { AnyZodObject } from 'remotion';
-import { LyricVideo } from './LyricVideo';
-import type { LyricVideoProps } from './LyricVideo';
+import { TemplateVideo } from './TemplateVideo';
+import type { TemplateVideoProps } from './TemplateVideo';
 
+// 300 frames = 10s at 30fps (default for development preview)
 export const RemotionRoot: React.FC = () => {
   return (
-    <Composition<AnyZodObject, LyricVideoProps>
+    <Composition<AnyZodObject, TemplateVideoProps>
       id="LyricVideo"
-      component={LyricVideo}
+      component={TemplateVideo}
       durationInFrames={300}
       fps={30}
       width={1080}
       height={1920}
       defaultProps={{
-        lines: [],
-        durationMs: 10000,
-        title: 'Song Title',
+        data: {
+          title: 'Song Title',
+          durationMs: 10000,
+          lines: [],
+        },
+        templateId: 'notes',
+        templateConfig: {},
       }}
     />
   );

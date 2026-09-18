@@ -76,10 +76,13 @@ export const ProjectScalarFieldEnum = {
   durationMs: 'durationMs',
   vocalStartMs: 'vocalStartMs',
   vocalEndMs: 'vocalEndMs',
+  creatorName: 'creatorName',
+  templateId: 'templateId',
+  templateConfig: 'templateConfig',
   template: 'template',
   singer: 'singer',
   manualLyrics: 'manualLyrics',
-  transcriptJson: 'transcriptJson',
+  coverUrl: 'coverUrl',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

@@ -9,7 +9,7 @@ export async function PUT(
 ) {
   try {
     const { id } = await params;
-    const { lines } = await req.json() as { lines: { index: number; startMs: number | null; endMs: number | null }[] };
+    const { lines } = await req.json() as { lines: { index: number; startMs: number | null; endMs: number | null; text?: string }[] };
 
     if (!Array.isArray(lines)) {
       return NextResponse.json({ error: 'lines must be an array' }, { status: 400 });
@@ -21,7 +21,7 @@ export async function PUT(
     });
     const indexToId = new Map(existingLines.map(l => [l.index, l.id]));
 
-    // Update each line's timestamps
+    // Update each line's timestamps, and its text when the client sent one
     await prisma.$transaction(
       lines.map(line => {
         const lineId = indexToId.get(line.index);
@@ -32,6 +32,7 @@ export async function PUT(
           data: {
             startMs: line.startMs,
             endMs: line.endMs,
+            ...(typeof line.text === 'string' ? { text: line.text } : {}),
           },
         });
       })

@@ -18,9 +18,12 @@ export interface Project {
   durationMs: number;
   vocalStartMs: number | null;
   vocalEndMs: number | null;
+  creatorName: string | null;
+  templateId: string;
+  templateConfig: string | null;
   template: string | null;
   singer: string | null;
-  transcriptJson: string | null;
+  coverUrl?: string | null;
   createdAt: string;
   updatedAt: string;
   lines: LyricLine[];
@@ -38,7 +41,6 @@ interface EditorStore {
   setIsPlaying: (playing: boolean) => void;
   updateLine: (index: number, partial: Partial<LyricLine>) => void;
   saveTimeline: () => Promise<void>;
-  saveLyrics: (texts: string[]) => Promise<void>;
 }
 
 export const useEditorStore = create<EditorStore>((set, get) => ({
@@ -74,25 +76,10 @@ export const useEditorStore = create<EditorStore>((set, get) => ({
           index: l.index,
           startMs: l.startMs,
           endMs: l.endMs,
+          text: l.text,
         })),
       }),
     });
-    const updated = await res.json();
-    set({ project: updated, lines: updated.lines ?? [] });
-  },
-
-  saveLyrics: async (texts: string[]) => {
-    const { project } = get();
-    if (!project) return;
-
-    await fetch(`/api/projects/${project.id}/lyrics`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ texts }),
-    });
-
-    // Reload project to get updated lines
-    const res = await fetch(`/api/projects/${project.id}`);
     const updated = await res.json();
     set({ project: updated, lines: updated.lines ?? [] });
   },
