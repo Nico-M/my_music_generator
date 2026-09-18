@@ -197,7 +197,8 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
           pointerEvents: 'none',
         }}
       >
-        <Loop durationInFrames={Math.round(10.04 * fps)}>
+        {/* 20s (600 frames at 30fps) seamless ping-pong reverse repeat */}
+        <Loop durationInFrames={600}>
           <OffthreadVideo
             src={staticFile('assets/templates/liquid-wave/wave-bg.mp4')}
             style={{
