@@ -1,11 +1,14 @@
 import React, { useMemo } from 'react';
-import { useCurrentFrame, useVideoConfig, interpolate, Easing } from 'remotion';
+import { useCurrentFrame, useVideoConfig, interpolate, Easing, spring } from 'remotion';
 import type { TemplateRenderProps, BaseLyricLine } from '../types';
 import {
   type MusicWidgetConfig,
   getWidgetThemeStyles,
 } from './config';
 import { getActiveLineState } from '../shared/timing';
+
+const FPS = 30;
+const clampOpts = { extrapolateLeft: 'clamp' as const, extrapolateRight: 'clamp' as const };
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
@@ -340,9 +343,19 @@ export const MusicWidgetTemplate: React.FC<TemplateRenderProps<MusicWidgetConfig
     );
   }, [timedLines, activeSegment, nowMs]);
 
-  // Gentle rhythmic pulse
+  // Gentle rhythmic pulse & specular sweep (frame-smith standard)
   const beatPulse = 1 + Math.sin(frame * 0.08) * 0.025;
   const slowAmbientDrift = Math.sin(frame * 0.02) * 20;
+  const widgetGlassGlint = ((frame * 0.75) % 700) - 350;
+
+  // Active lyric spring-overshoot pop
+  const activeLineStart = activeSegment >= 0 ? timedLines[activeSegment]?.startMs ?? 0 : 0;
+  const activeLocalFrame = Math.max(0, (nowMs - activeLineStart) / (1000 / fps));
+  const activeSpring = spring({
+    frame: activeLocalFrame,
+    fps,
+    config: { damping: 13, stiffness: 145 },
+  });
 
   const displayTitle = data.title || 'Lorem ipsum dolor sit amet';
   const displaySinger = data.singer || data.creatorName || '';
@@ -500,10 +513,11 @@ export const MusicWidgetTemplate: React.FC<TemplateRenderProps<MusicWidgetConfig
                 : distance === 1
                   ? 0.45
                   : distance === 2
-                    ? 0.25
-                    : 0.12;
+                    ? 0.22
+                    : 0.08;
 
-              const scale = isActive ? 1.05 : distance === 1 ? 0.94 : 0.88;
+              const blurPx = isActive ? 0 : Math.min(4, distance * 1.5);
+              const scale = isActive ? 1.05 + activeSpring * 0.04 : distance === 1 ? 0.94 : 0.88;
 
               return (
                 <div
@@ -519,6 +533,7 @@ export const MusicWidgetTemplate: React.FC<TemplateRenderProps<MusicWidgetConfig
                     transform: `scale(${scale})`,
                     transformOrigin: 'center center',
                     opacity,
+                    filter: blurPx > 0.3 ? `blur(${blurPx}px)` : 'none',
                     transition: 'opacity 0.25s ease, transform 0.25s ease',
                   }}
                 >
@@ -527,7 +542,9 @@ export const MusicWidgetTemplate: React.FC<TemplateRenderProps<MusicWidgetConfig
                       fontSize: isActive ? 52 : 32,
                       fontWeight: isActive ? 700 : 500,
                       color: isActive ? themeStyles.lyricsActiveColor : themeStyles.lyricsInactiveColor,
-                      textShadow: isActive && config.glowEffect ? themeStyles.lyricsGlow : '0 2px 8px rgba(0,0,0,0.5)',
+                      textShadow: isActive
+                        ? `${themeStyles.lyricsGlow}, 0 0 25px rgba(255, 255, 255, 0.4)`
+                        : '0 2px 8px rgba(0,0,0,0.5)',
                       letterSpacing: '-0.3px',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
@@ -587,9 +604,22 @@ export const MusicWidgetTemplate: React.FC<TemplateRenderProps<MusicWidgetConfig
             flexDirection: 'column',
             gap: 32,
             position: 'relative',
+            overflow: 'hidden',
             zIndex: 1,
           }}
         >
+          {/* Ambient Diagonal Specular Sweep on Glass */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background:
+                'linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.06) 49%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0.06) 51%, transparent 60%)',
+              transform: `translateX(${widgetGlassGlint}px)`,
+              pointerEvents: 'none',
+            }}
+          />
+
           {/* Top Row: Thumbnail + Title/Singer + AirPlay Route Icon */}
           <div
             style={{
@@ -882,3 +912,9 @@ export const MusicWidgetTemplate: React.FC<TemplateRenderProps<MusicWidgetConfig
     </div>
   );
 };
+
+// Export三件套 (frame-smith standard contract)
+export const MUSIC_WIDGET_FRAMES = 1800;
+export const MusicWidgetTemplateCover: React.FC<TemplateRenderProps<MusicWidgetConfig>> = (props) => (
+  <MusicWidgetTemplate {...props} />
+);

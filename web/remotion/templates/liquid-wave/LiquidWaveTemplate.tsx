@@ -1,13 +1,27 @@
 import React, { useMemo } from 'react';
-import { useCurrentFrame, useVideoConfig, interpolate, Easing, Loop, OffthreadVideo, staticFile } from 'remotion';
+import {
+  useCurrentFrame,
+  useVideoConfig,
+  interpolate,
+  Easing,
+  Loop,
+  OffthreadVideo,
+  staticFile,
+  spring,
+} from 'remotion';
 import type { TemplateRenderProps } from '../types';
 import type { LiquidWaveConfig } from './config';
 import { getLiquidColors } from './config';
 
+const FPS = 30;
 const WIDTH = 1080;
 const HEIGHT = 1920;
 const LYRIC_LINE_HEIGHT = 88;
 const LYRIC_VIEWPORT_H = 780;
+
+// Universal Motion Craft Floor helpers (frame-smith standard)
+const clampOpts = { extrapolateLeft: 'clamp' as const, extrapolateRight: 'clamp' as const };
+const power3Out = Easing.out(Easing.cubic);
 
 function formatTime(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
@@ -27,10 +41,10 @@ interface StarlightParticle {
 }
 
 // Procedural floating starlight motes that complement the dark liquid wave
-const STARLIGHT_SEEDS: StarlightParticle[] = Array.from({ length: 28 }).map((_, i) => ({
+const STARLIGHT_SEEDS: StarlightParticle[] = Array.from({ length: 32 }).map((_, i) => ({
   x: (i * 39 + 35) % WIDTH,
   y: (i * 67 + 50) % HEIGHT,
-  size: (i % 3 === 0 ? 2.5 : i % 2 === 0 ? 1.8 : 1.2),
+  size: i % 3 === 0 ? 2.5 : i % 2 === 0 ? 1.8 : 1.2,
   speed: 0.35 + (i % 5) * 0.15,
   opacity: 0.4 + (i % 4) * 0.15,
   twinkleFreq: 0.04 + (i % 3) * 0.02,
@@ -52,21 +66,26 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
   const totalDurationMs = Math.max(data.durationMs || 0, 1000);
   const progressRatio = Math.min(1, Math.max(0, nowMs / totalDurationMs));
 
-  // Subtle vinyl / disc rotation and gentle fluid floating
-  const discBobY = Math.sin(frame * 0.025 * speedMul) * 10;
-  const discRotation = frame * 0.35 * speedMul;
+  // --- 1. Fluid Dynamic 3D Vinyl Floating Physics (frame-smith motion craft) ---
+  const wavePhase = frame * 0.032 * speedMul;
+  const discBobY = Math.sin(wavePhase) * 12 + Math.cos(wavePhase * 0.45) * 4;
+  const tiltX = Math.sin(wavePhase * 0.8) * 7 + Math.cos(wavePhase * 0.4) * 2;
+  const tiltY = Math.cos(wavePhase * 0.7) * 8 + Math.sin(wavePhase * 0.35) * 2.5;
+  const discRotation = frame * 0.42 * speedMul;
+  const auraPulse = 0.85 + Math.sin(wavePhase * 1.2) * 0.15;
 
-  // Concentric liquid ripples expanding from disc
+  // --- 2. Concentric Fluid Ripples with Organic Cubic Deceleration ---
   const rippleCount = config.rippleCount || 4;
   const ripples = Array.from({ length: rippleCount }).map((_, i) => {
     const period = 100 / speedMul;
-    const t = ((frame + i * (period / rippleCount)) % period) / period;
-    const radius = 175 + t * 240;
-    const opacity = (1 - t) * 0.35;
+    const rawT = ((frame + i * (period / rippleCount)) % period) / period;
+    const easeT = power3Out(rawT);
+    const radius = 170 + easeT * 260;
+    const opacity = (1 - rawT) * 0.38;
     return { radius, opacity };
   });
 
-  // Timed lyrics logic
+  // --- 3. Timed Lyrics Logic with Optical Spring Physics ---
   const timedLines = useMemo(() => {
     const list: { lineIdx: number; startMs: number; text: string }[] = [];
     for (let i = 0; i < data.lines.length; i++) {
@@ -91,6 +110,15 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
     return seg;
   }, [timedLines, nowMs]);
 
+  // Active lyric spring-overshoot pop when new line begins
+  const activeLineStartMs = activeSegment >= 0 ? timedLines[activeSegment]?.startMs : 0;
+  const activeLocalFrame = Math.max(0, (nowMs - activeLineStartMs) / (1000 / fps));
+  const activeSpring = spring({
+    frame: activeLocalFrame,
+    fps,
+    config: { damping: 13, stiffness: 145 },
+  });
+
   const lyricScrollY = useMemo(() => {
     if (timedLines.length === 0) return 0;
     if (activeSegment < 0) return 0;
@@ -105,8 +133,7 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
         [Math.max(0, current.startMs - firstLineDuration), current.startMs],
         [Math.max(0, targetY - LYRIC_LINE_HEIGHT * 0.4), targetY],
         {
-          extrapolateLeft: 'clamp',
-          extrapolateRight: 'clamp',
+          ...clampOpts,
           easing: Easing.out(Easing.cubic),
         }
       );
@@ -127,8 +154,7 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
       [current.startMs, current.startMs + scrollDuration],
       [prevTargetY, targetY],
       {
-        extrapolateLeft: 'clamp',
-        extrapolateRight: 'clamp',
+        ...clampOpts,
         easing: Easing.out(Easing.cubic),
       }
     );
@@ -136,7 +162,7 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
 
   const CENTER_Y = (LYRIC_VIEWPORT_H - LYRIC_LINE_HEIGHT) / 2;
 
-  // Floating particles
+  // --- 4. Floating Starlight Motes ---
   const particles = useMemo(() => {
     if (!config.showParticles) return [];
     return STARLIGHT_SEEDS.map((p, idx) => {
@@ -154,6 +180,9 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
   }, [config.showParticles, frame, speedMul]);
 
   const discCenterY = 320;
+
+  // Glass card diagonal light sweep progress (every ~18s)
+  const glintOffset = ((frame * 0.65) % 550) - 275;
 
   return (
     <div
@@ -248,7 +277,7 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
             height: p.size,
             borderRadius: '50%',
             backgroundColor: '#FFFFFF',
-            boxShadow: `0 0 ${p.size * 3}px rgba(255, 255, 255, 0.8)`,
+            boxShadow: `0 0 ${p.size * 3}px rgba(255, 255, 255, 0.85)`,
             opacity: p.opacity,
             zIndex: 4,
             pointerEvents: 'none',
@@ -269,110 +298,148 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
             cy={discCenterY + discBobY}
             r={r.radius}
             fill="none"
-            stroke="rgba(255, 255, 255, 0.25)"
-            strokeWidth={1.2}
-            strokeDasharray="4 6"
+            stroke="rgba(255, 255, 255, 0.28)"
+            strokeWidth={1.3}
+            strokeDasharray="5 7"
             opacity={r.opacity}
           />
         ))}
       </svg>
 
-      {/* ===== LAYER 5: LIQUID-GLASS & METALLIC VINYL CENTERPIECE ===== */}
+      {/* ===== LAYER 5: 3D FLOATING LIQUID-GLASS & METALLIC VINYL CENTERPIECE ===== */}
       <div
         style={{
           position: 'absolute',
-          top: discCenterY - 145 + discBobY,
+          top: discCenterY - 145,
           left: WIDTH / 2 - 145,
           width: 290,
           height: 290,
-          borderRadius: '50%',
-          overflow: 'hidden',
-          backgroundColor: '#050505',
-          border: '1px solid rgba(255, 255, 255, 0.22)',
-          boxShadow: `
-            0 25px 60px rgba(0, 0, 0, 0.95),
-            inset 0 1px 0 rgba(255, 255, 255, 0.4),
-            0 0 40px ${colors.glassGlow}
-          `,
           zIndex: 10,
+          perspective: 1200,
         }}
       >
+        {/* Ambient Breathing Aura Glow behind Vinyl */}
         <div
           style={{
-            width: '100%',
-            height: '100%',
+            position: 'absolute',
+            inset: -35,
+            borderRadius: '50%',
+            background: `radial-gradient(circle, ${colors.glassGlow} 0%, transparent 72%)`,
+            transform: `translateY(${discBobY}px) scale(${auraPulse})`,
+            filter: 'blur(22px)',
+            opacity: 0.95,
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* 3D Floating Vinyl Disk Body */}
+        <div
+          style={{
+            width: 290,
+            height: 290,
             borderRadius: '50%',
             overflow: 'hidden',
-            position: 'relative',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transform: `rotate(${discRotation}deg)`,
-            transformOrigin: 'center center',
+            backgroundColor: '#050505',
+            border: '1.5px solid rgba(255, 255, 255, 0.28)',
+            boxShadow: `
+              0 30px 70px rgba(0, 0, 0, 0.95),
+              inset 0 1px 0 rgba(255, 255, 255, 0.45),
+              0 0 45px ${colors.glassGlow}
+            `,
+            transform: `perspective(1200px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) translateY(${discBobY}px)`,
+            transformStyle: 'preserve-3d',
+            willChange: 'transform',
           }}
         >
-          {data.coverUrl ? (
-            <img
-              src={data.coverUrl}
-              alt={data.title}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
-          ) : (
-            /* Procedural Dark Liquid Mercury Vinyl Fallback */
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                background:
-                  'radial-gradient(circle, #242428 0%, #111114 45%, #050507 85%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                position: 'relative',
-              }}
-            >
-              {[110, 85, 60, 35].map((dim, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    position: 'absolute',
-                    width: dim * 2,
-                    height: dim * 2,
-                    borderRadius: '50%',
-                    border: '1px solid rgba(255, 255, 255, 0.12)',
-                  }}
-                />
-              ))}
-              {/* Spindle centerpiece */}
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  background:
-                    'linear-gradient(135deg, #FFFFFF 0%, #A0A0A0 50%, #404040 100%)',
-                  boxShadow: '0 0 20px rgba(255, 255, 255, 0.5)',
-                  border: '1px solid rgba(255, 255, 255, 0.8)',
-                }}
-              />
-            </div>
-          )}
-
-          {/* Liquid-Glass Shimmer Specular Sweep */}
           <div
             style={{
-              position: 'absolute',
-              inset: 0,
-              background:
-                'linear-gradient(125deg, rgba(255,255,255,0.3) 0%, transparent 45%, transparent 100%)',
-              pointerEvents: 'none',
+              width: '100%',
+              height: '100%',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transform: `rotate(${discRotation}deg)`,
+              transformOrigin: 'center center',
             }}
-          />
+          >
+            {data.coverUrl ? (
+              <img
+                src={data.coverUrl}
+                alt={data.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+            ) : (
+              /* Procedural Dark Liquid Mercury Vinyl Fallback */
+              <div
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  background:
+                    'radial-gradient(circle, #242428 0%, #111114 45%, #050507 85%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  position: 'relative',
+                }}
+              >
+                {[110, 85, 60, 35].map((dim, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      position: 'absolute',
+                      width: dim * 2,
+                      height: dim * 2,
+                      borderRadius: '50%',
+                      border: '1px solid rgba(255, 255, 255, 0.12)',
+                    }}
+                  />
+                ))}
+                {/* Spindle centerpiece */}
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    background:
+                      'linear-gradient(135deg, #FFFFFF 0%, #A0A0A0 50%, #404040 100%)',
+                    boxShadow: '0 0 20px rgba(255, 255, 255, 0.5)',
+                    border: '1px solid rgba(255, 255, 255, 0.8)',
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Sweeping Dual Specular Anisotropic Highlight across Vinyl Grooves */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '50%',
+                background: `conic-gradient(from ${discRotation * 1.5}deg at 50% 50%, transparent 0deg, rgba(255,255,255,0.22) 35deg, transparent 75deg, transparent 180deg, rgba(255,255,255,0.18) 215deg, transparent 255deg, transparent 360deg)`,
+                mixBlendMode: 'screen',
+                pointerEvents: 'none',
+              }}
+            />
+
+            {/* Liquid-Glass Shimmer Specular Sweep */}
+            <div
+              style={{
+                position: 'absolute',
+                inset: 0,
+                background:
+                  'linear-gradient(125deg, rgba(255,255,255,0.3) 0%, transparent 45%, transparent 100%)',
+                pointerEvents: 'none',
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -430,7 +497,7 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
           </span>
         </div>
 
-        {/* Song Title in Instrument Serif Italic */}
+        {/* Song Title in Instrument Serif Italic with Caustic Glow */}
         <h1
           className="instrument-serif"
           style={{
@@ -441,7 +508,7 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
             color: '#FFFFFF',
             lineHeight: 1.15,
             textShadow:
-              '0 4px 30px rgba(255, 255, 255, 0.35), 0 2px 10px rgba(0,0,0,0.8)',
+              '0 4px 35px rgba(255, 255, 255, 0.4), 0 0 70px rgba(186, 208, 255, 0.3), 0 2px 10px rgba(0,0,0,0.85)',
             maxWidth: 900,
           }}
         >
@@ -465,7 +532,7 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
         )}
       </div>
 
-      {/* ===== LAYER 7: LIQUID-GLASS ENCASED LYRICS STREAM ===== */}
+      {/* ===== LAYER 7: LIQUID-GLASS ENCASED LYRICS STREAM WITH OPTICAL FOCUS-PULL ===== */}
       <div
         style={{
           position: 'absolute',
@@ -477,17 +544,28 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
           background: colors.glassBg,
           border: `1px solid ${colors.glassBorder}`,
           boxShadow: `
-            inset 0 1px 0 rgba(255, 255, 255, 0.18),
+            inset 0 1px 0 rgba(255, 255, 255, 0.22),
             0 30px 80px rgba(0, 0, 0, 0.75),
-            0 0 35px ${colors.glassGlow}
+            0 0 40px ${colors.glassGlow}
           `,
-          backdropFilter: 'blur(24px)',
+          backdropFilter: 'blur(28px)',
           overflow: 'hidden',
           zIndex: 20,
           pointerEvents: 'none',
         }}
       >
-        {/* Inner edge mask for smooth lyrics emergence and departure */}
+        {/* Frosted Glass Diagonal Specular Glint Sweep */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background: `linear-gradient(115deg, transparent 40%, rgba(255,255,255,0.05) 49%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.05) 51%, transparent 60%)`,
+            transform: `translateX(${glintOffset}px)`,
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* Inner edge vertical gradient mask for ethereal lyric emergence/departure */}
         <div
           style={{
             position: 'absolute',
@@ -511,16 +589,13 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
               const lineCenterY = idx * LYRIC_LINE_HEIGHT;
               const distPx = Math.abs(lineCenterY - lyricScrollY);
               const normDist = distPx / LYRIC_LINE_HEIGHT;
-
-              const opacity = interpolate(normDist, [0, 0.9, 2.2], [1, 0.48, 0.08], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              });
-              const scale = interpolate(normDist, [0, 1.2], [1.05, 0.94], {
-                extrapolateLeft: 'clamp',
-                extrapolateRight: 'clamp',
-              });
               const isCenter = normDist < 0.45;
+
+              // Cinematic Depth of Field Blur + Spring Pop
+              const blurPx = interpolate(normDist, [0, 0.5, 1.5, 3], [0, 0.4, 2.2, 4.5], clampOpts);
+              const opacity = interpolate(normDist, [0, 0.85, 2.2], [1, 0.48, 0.08], clampOpts);
+              const baseScale = interpolate(normDist, [0, 1.2], [1.04, 0.94], clampOpts);
+              const finalScale = isCenter ? 1 + activeSpring * 0.06 : baseScale;
 
               return (
                 <div
@@ -535,11 +610,27 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
                     alignItems: 'center',
                     justifyContent: 'center',
                     textAlign: 'center',
-                    transform: `scale(${scale})`,
+                    transform: `scale(${finalScale})`,
                     transformOrigin: 'center center',
                     opacity,
+                    filter: blurPx > 0.3 ? `blur(${blurPx}px)` : 'none',
                   }}
                 >
+                  {/* Subtle glowing pill dot indicator for active center lyric */}
+                  {isCenter && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: 48,
+                        width: 8,
+                        height: 8,
+                        borderRadius: '50%',
+                        backgroundColor: '#FFFFFF',
+                        boxShadow: `0 0 12px #FFFFFF, 0 0 20px ${colors.accent1}`,
+                      }}
+                    />
+                  )}
+
                   <span
                     style={{
                       fontSize: isCenter ? 44 : 32,
@@ -547,12 +638,12 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
                       color: isCenter ? '#FFFFFF' : colors.muted,
                       letterSpacing: isCenter ? 1.4 : 1.1,
                       lineHeight: 1.25,
-                      padding: '0 40px',
+                      padding: '0 64px',
                       whiteSpace: 'nowrap',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       textShadow: isCenter
-                        ? '0 0 25px rgba(255, 255, 255, 0.5), 0 2px 8px rgba(0,0,0,0.8)'
+                        ? `0 0 28px rgba(255, 255, 255, 0.65), 0 0 50px ${colors.accent1}40, 0 2px 8px rgba(0,0,0,0.85)`
                         : 'none',
                     }}
                   >
@@ -565,7 +656,7 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
         </div>
       </div>
 
-      {/* ===== LAYER 8: BOTTOM PROGRESS DOCK ===== */}
+      {/* ===== LAYER 8: BOTTOM PROGRESS DOCK WITH LUMINOUS PLAYHEAD ===== */}
       <div
         style={{
           position: 'absolute',
@@ -580,25 +671,41 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
           style={{
             position: 'relative',
             width: '100%',
-            height: 7,
+            height: 8,
             borderRadius: 4,
             backgroundColor: 'rgba(255, 255, 255, 0.12)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
-            overflow: 'hidden',
           }}
         >
+          {/* Filled gradient beam */}
           <div
             style={{
               width: `${progressRatio * 100}%`,
               height: '100%',
+              borderRadius: 4,
               background:
                 'linear-gradient(90deg, #606068 0%, #D0D0D8 50%, #FFFFFF 100%)',
               boxShadow: '0 0 14px rgba(255, 255, 255, 0.7)',
             }}
           />
+
+          {/* Luminous glowing playhead pin */}
+          <div
+            style={{
+              position: 'absolute',
+              left: `${progressRatio * 100}%`,
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              backgroundColor: '#FFFFFF',
+              boxShadow: `0 0 10px #FFFFFF, 0 0 20px ${colors.accent1}`,
+            }}
+          />
         </div>
 
-        {/* Timestamps & Brand */}
+        {/* Timestamps & Brand Watermark */}
         <div
           style={{
             display: 'flex',
@@ -622,3 +729,9 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
     </div>
   );
 };
+
+// Export三件套 (frame-smith standard contract)
+export const LIQUID_WAVE_FRAMES = 1800; // 60s at 30fps default
+export const LiquidWaveTemplateCover: React.FC<TemplateRenderProps<LiquidWaveConfig>> = (props) => (
+  <LiquidWaveTemplate {...props} />
+);

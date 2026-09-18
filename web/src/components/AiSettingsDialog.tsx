@@ -100,42 +100,37 @@ export function AiSettingsDialog() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.6)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
       onMouseDown={handleBackdrop}
     >
       <div
         ref={dialogRef}
-        className="w-full max-w-md rounded-xl overflow-hidden"
-        style={{ background: 'var(--color-surface)', border: '1px solid var(--color-border)' }}
+        className="w-full max-w-md rounded-2xl overflow-hidden border border-white/20 bg-[#0c0a17]/95 backdrop-blur-2xl shadow-2xl shadow-indigo-950/50"
       >
-        <div
-          className="flex items-center justify-between px-5 py-3"
-          style={{ borderBottom: '1px solid var(--color-border)' }}
-        >
-          <h2 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-            {t('ai.settingsTitle')}
+        <div className="h-1 bg-gradient-to-r from-indigo-500 via-pink-500 to-cyan-400" />
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/10">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <span>{t('ai.settingsTitle')}</span>
           </h2>
           <button
             onClick={closeSettings}
-            className="btn-ghost !p-1"
-            style={{ color: 'var(--color-text-subtle)' }}
+            className="w-7 h-7 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         <div className="px-5 py-4 space-y-4">
-          <p className="text-[11px] leading-5" style={{ color: 'var(--color-text-subtle)' }}>
+          <p className="text-[11px] leading-5 text-slate-400">
             {t('ai.keyHint')}
           </p>
 
           {/* API Key */}
           <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
+            <label className="block text-xs font-medium text-white mb-1.5">
               {t('ai.apiKey')}
             </label>
-            <div className="flex gap-1">
+            <div className="flex gap-2">
               <input
                 type={showKey ? 'text' : 'password'}
                 value={form.apiKey}
@@ -144,14 +139,13 @@ export function AiSettingsDialog() {
                   setTestState('idle');
                   setTestError(null);
                 }}
-                className="input-field !py-1.5 !text-xs flex-1"
+                className="w-full h-10 px-3.5 rounded-xl bg-[#1A1A1A] border border-white/5 text-white placeholder:text-white/20 text-xs focus:outline-none focus:ring-2 focus:ring-white/20 font-mono transition-all"
                 placeholder="sk-..."
               />
               <button
                 type="button"
                 onClick={() => setShowKey((v) => !v)}
-                className="btn-ghost !py-1.5 !px-2 !text-xs shrink-0"
-                style={{ color: 'var(--color-text-subtle)' }}
+                className="h-10 px-3.5 text-xs rounded-xl bg-black/60 hover:bg-white/5 text-white/80 hover:text-white border border-white/10 active:scale-[0.98] transition-all shrink-0 cursor-pointer"
               >
                 {showKey ? t('ai.hideKey') : t('ai.showKey')}
               </button>
@@ -164,17 +158,17 @@ export function AiSettingsDialog() {
               type="button"
               onClick={handleTest}
               disabled={testState === 'loading'}
-              className="btn-secondary !py-1.5 !px-3 !text-xs"
+              className="px-3.5 py-1.5 text-xs rounded-xl bg-black/60 hover:bg-white/5 text-white/90 border border-white/10 active:scale-[0.98] transition-all cursor-pointer"
             >
               {testState === 'loading' ? t('ai.testingConnection') : t('ai.testConnection')}
             </button>
             {testState === 'ok' && (
-              <span className="text-xs" style={{ color: 'var(--color-primary)' }}>
+              <span className="text-xs text-emerald-400 font-medium">
                 {t('ai.connectionOk')}
               </span>
             )}
             {testState === 'error' && testError && (
-              <span className="text-xs" style={{ color: 'var(--color-danger)' }}>
+              <span className="text-xs text-rose-400 font-medium">
                 {testError}
               </span>
             )}
@@ -182,21 +176,24 @@ export function AiSettingsDialog() {
 
           {/* Validation error */}
           {error && (
-            <p className="text-xs" style={{ color: 'var(--color-danger)' }}>
+            <p className="text-xs text-rose-400">
               {error}
             </p>
           )}
         </div>
 
         {/* Footer */}
-        <div
-          className="flex items-center justify-end gap-2 px-5 py-3"
-          style={{ borderTop: '1px solid var(--color-border)' }}
-        >
-          <button onClick={closeSettings} className="btn-ghost !py-1.5 !px-3 !text-xs">
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-white/10 bg-black/40">
+          <button
+            onClick={closeSettings}
+            className="px-4 py-2 text-xs rounded-xl bg-black/60 border border-white/10 hover:bg-white/5 active:scale-[0.98] text-white/80 hover:text-white transition-all cursor-pointer"
+          >
             {t('ai.cancel')}
           </button>
-          <button onClick={handleSave} className="btn-primary !py-1.5 !px-3 !text-xs">
+          <button
+            onClick={handleSave}
+            className="px-5 py-2 text-xs font-semibold rounded-xl bg-white text-black hover:bg-white/90 active:scale-[0.98] shadow-md shadow-white/5 transition-all cursor-pointer"
+          >
             {t('ai.save')}
           </button>
         </div>

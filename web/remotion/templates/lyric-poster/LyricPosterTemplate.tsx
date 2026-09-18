@@ -1,14 +1,16 @@
 import React, { useMemo } from 'react';
-import { useCurrentFrame, useVideoConfig, interpolate, Easing, Img } from 'remotion';
+import { useCurrentFrame, useVideoConfig, interpolate, Easing, Img, spring } from 'remotion';
 import type { TemplateRenderProps } from '../types';
 import type { LyricPosterConfig } from './config';
 import { getPosterColors } from './config';
 import { getActiveLineState } from '../shared/timing';
 
+const FPS = 30;
 const WIDTH = 1080;
 const HEIGHT = 1920;
 const LINE_HEIGHT = 80;
 const VIEWPORT_LINES = 10;
+const clampOpts = { extrapolateLeft: 'clamp' as const, extrapolateRight: 'clamp' as const };
 
 function formatTime(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
@@ -163,6 +165,28 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
   const bgScale = 1.15 + Math.sin(frame * 0.012) * 0.06;
   const bgTranslateY = Math.sin(frame * 0.009) * 14;
   const bgTranslateX = Math.cos(frame * 0.007) * 10;
+
+  // Frame-smith: Spring slide-out for the vinyl record from the sleeve
+  const vinylEntrance = spring({
+    frame,
+    fps,
+    config: { damping: 14, stiffness: 90 },
+  });
+  const vinylLeft = interpolate(vinylEntrance, [0, 1], [60, 210], clampOpts);
+  const vinylBobY = Math.sin(frame * 0.04) * 4;
+  const vinylTilt = Math.sin(frame * 0.03) * 1.8;
+
+  // Frame-smith: Active lyric line spring overshoot
+  const currentLineStart = state.currentIndex >= 0 ? data.lines[state.currentIndex]?.startMs ?? 0 : 0;
+  const activeLocalFrame = Math.max(0, (nowMs - currentLineStart) / (1000 / fps));
+  const activeSpring = spring({
+    frame: activeLocalFrame,
+    fps,
+    config: { damping: 13, stiffness: 145 },
+  });
+
+  // Barcode animated scanning laser position
+  const barcodeScan = (frame * 1.8) % 180;
 
   // Safely upgrade cover image URL to HTTPS if needed
   const safeCoverUrl = data.coverUrl
@@ -452,22 +476,22 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
           />
         </div>
 
-        {/* Rotating Vinyl Record (Sliding out to the right) */}
+        {/* Rotating Vinyl Record (Spring sliding out to the right + gentle float) */}
         <div
           style={{
             position: 'absolute',
-            top: 20,
-            left: 210,
+            top: 20 + vinylBobY,
+            left: vinylLeft,
             width: 340,
             height: 340,
             borderRadius: '50%',
             backgroundColor: '#09090B',
             boxShadow:
-              '0 20px 50px rgba(0,0,0,0.8), inset 0 0 0 2px rgba(255,255,255,0.08)',
+              '0 24px 60px rgba(0,0,0,0.85), inset 0 0 0 2px rgba(255,255,255,0.1), 0 0 30px rgba(0,0,0,0.5)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transform: `rotate(${vinylRotation}deg)`,
+            transform: `rotate(${vinylRotation}deg) rotateZ(${vinylTilt}deg)`,
             transformOrigin: 'center center',
             zIndex: 22,
           }}
@@ -481,20 +505,20 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
                 width: radius * 2,
                 height: radius * 2,
                 borderRadius: '50%',
-                border: '1px solid rgba(255, 255, 255, 0.04)',
-                boxShadow: 'inset 0 0 4px rgba(255,255,255,0.02)',
+                border: '1px solid rgba(255, 255, 255, 0.05)',
+                boxShadow: 'inset 0 0 4px rgba(255,255,255,0.03)',
               }}
             />
           ))}
 
-          {/* Light Sheen Reflection across the vinyl */}
+          {/* Dynamic Anisotropic Sweeping Sheen across the vinyl */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
               borderRadius: '50%',
-              background:
-                'conic-gradient(from 45deg, transparent 0deg, rgba(255,255,255,0.08) 60deg, transparent 120deg, transparent 180deg, rgba(255,255,255,0.08) 240deg, transparent 300deg)',
+              background: `conic-gradient(from ${vinylRotation * 1.5}deg at 50% 50%, transparent 0deg, rgba(255,255,255,0.16) 40deg, transparent 80deg, transparent 180deg, rgba(255,255,255,0.12) 220deg, transparent 260deg, transparent 360deg)`,
+              mixBlendMode: 'screen',
               pointerEvents: 'none',
             }}
           />
@@ -677,6 +701,11 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
               state.currentIndex >= 0
                 ? i < state.currentIndex
                 : state.lastStartedIndex >= 0 && i <= state.lastStartedIndex;
+            const distFromActive = Math.abs(i - activeIdx);
+            const blurPx = isCurrent ? 0 : Math.min(3.5, distFromActive * 0.75);
+            const scale = isCurrent ? 1 + activeSpring * 0.04 : Math.max(0.95, 1 - distFromActive * 0.015);
+            const opacity = isCurrent ? 1 : isPast ? 0.42 : 0.65;
+
             return (
               <div
                 key={i}
@@ -688,7 +717,13 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
                   padding: '0 16px',
                   borderRadius: 12,
                   backgroundColor: isCurrent ? colors.cardBg : 'transparent',
-                  boxShadow: isCurrent ? '0 4px 20px rgba(0,0,0,0.3)' : 'none',
+                  borderLeft: isCurrent ? `4px solid ${colors.accent}` : '4px solid transparent',
+                  boxShadow: isCurrent ? `0 8px 30px rgba(0,0,0,0.5), 0 0 24px ${colors.accent}25` : 'none',
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'left center',
+                  opacity,
+                  filter: blurPx > 0.3 ? `blur(${blurPx}px)` : 'none',
+                  transition: 'background-color 0.2s ease',
                 }}
               >
                 {/* Microphone Icon indicator */}
@@ -700,7 +735,8 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    backgroundColor: isCurrent ? `${colors.accent}25` : 'transparent',
+                    backgroundColor: isCurrent ? `${colors.accent}28` : 'transparent',
+                    boxShadow: isCurrent ? `0 0 16px ${colors.accent}40` : 'none',
                     flexShrink: 0,
                   }}
                 >
@@ -725,6 +761,9 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
+                    textShadow: isCurrent
+                      ? `0 0 24px rgba(255, 255, 255, 0.5), 0 0 45px ${colors.accent}35`
+                      : 'none',
                   }}
                 >
                   {line.text}
@@ -745,14 +784,14 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
           zIndex: 20,
         }}
       >
-        {/* Progress Line */}
+        {/* Progress Line with Luminous Playhead */}
         <div
           style={{
+            position: 'relative',
             width: '100%',
-            height: 4,
-            backgroundColor: 'rgba(255,255,255,0.15)',
-            borderRadius: 2,
-            overflow: 'hidden',
+            height: 6,
+            backgroundColor: 'rgba(255,255,255,0.12)',
+            borderRadius: 3,
             marginBottom: 28,
           }}
         >
@@ -760,7 +799,23 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
             style={{
               width: `${progressRatio * 100}%`,
               height: '100%',
+              borderRadius: 3,
               backgroundColor: colors.accent,
+              boxShadow: `0 0 12px ${colors.accent}`,
+            }}
+          />
+          {/* Glowing Playhead Bead */}
+          <div
+            style={{
+              position: 'absolute',
+              left: `${progressRatio * 100}%`,
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              backgroundColor: '#FFFFFF',
+              boxShadow: `0 0 10px #FFFFFF, 0 0 16px ${colors.accent}`,
             }}
           />
         </div>
@@ -772,9 +827,24 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
             alignItems: 'flex-end',
           }}
         >
-          {/* Barcode graphic */}
+          {/* Barcode graphic with animated laser sweep */}
           <div>
-            <BarcodeGraphic color={colors.textPrimary} />
+            <div style={{ position: 'relative', overflow: 'hidden' }}>
+              <BarcodeGraphic color={colors.textPrimary} />
+              {/* Sweeping Laser Glint */}
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  left: barcodeScan,
+                  width: 2,
+                  backgroundColor: colors.accent,
+                  boxShadow: `0 0 8px ${colors.accent}, 0 0 14px ${colors.accent}`,
+                  pointerEvents: 'none',
+                }}
+              />
+            </div>
             <div
               style={{
                 fontSize: 14,
@@ -821,3 +891,9 @@ export const LyricPosterTemplate: React.FC<TemplateRenderProps<LyricPosterConfig
     </div>
   );
 };
+
+// Export三件套 (frame-smith standard contract)
+export const LYRIC_POSTER_FRAMES = 1800;
+export const LyricPosterTemplateCover: React.FC<TemplateRenderProps<LyricPosterConfig>> = (props) => (
+  <LyricPosterTemplate {...props} />
+);

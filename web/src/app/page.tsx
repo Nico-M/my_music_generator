@@ -955,7 +955,7 @@ export default function Home() {
                   <div>
                     <label
                       htmlFor="project-title"
-                      className="block text-xs font-medium text-slate-300 mb-1.5"
+                      className="block text-xs font-medium text-white mb-1.5"
                     >
                       {t('create.projectTitle')}
                     </label>
@@ -964,7 +964,7 @@ export default function Home() {
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-white/15 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full h-11 px-4 rounded-xl bg-[#1A1A1A] border border-white/5 text-white placeholder:text-white/20 text-sm focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
                       placeholder={t('create.projectPlaceholder')}
                       required
                     />
@@ -973,7 +973,7 @@ export default function Home() {
                   <div>
                     <label
                       htmlFor="template-brand"
-                      className="block text-xs font-medium text-slate-300 mb-1.5"
+                      className="block text-xs font-medium text-white mb-1.5"
                     >
                       {t('create.brand')}
                     </label>
@@ -982,7 +982,7 @@ export default function Home() {
                       type="text"
                       value={creatorName}
                       onChange={(e) => setCreatorName(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-white/15 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full h-11 px-4 rounded-xl bg-[#1A1A1A] border border-white/5 text-white placeholder:text-white/20 text-sm focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
                       placeholder={t('create.brandPlaceholder')}
                     />
                   </div>
@@ -990,7 +990,7 @@ export default function Home() {
                   <div>
                     <label
                       htmlFor="project-singer"
-                      className="block text-xs font-medium text-slate-300 mb-1.5"
+                      className="block text-xs font-medium text-white mb-1.5"
                     >
                       {t('create.singer')}
                     </label>
@@ -999,11 +999,11 @@ export default function Home() {
                       type="text"
                       value={singer}
                       onChange={(e) => setSinger(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-white/15 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full h-11 px-4 rounded-xl bg-[#1A1A1A] border border-white/5 text-white placeholder:text-white/20 text-sm focus:outline-none focus:ring-2 focus:ring-white/20 transition-all"
                       placeholder={t('create.singerPlaceholder')}
                       required
                     />
-                    <p className="mt-1 text-[11px] text-slate-500">
+                    <p className="mt-1 text-[11px] text-white/40">
                       {t('create.singerHint')}
                     </p>
                   </div>
@@ -1011,7 +1011,7 @@ export default function Home() {
                   <div>
                     <label
                       htmlFor="audio-file"
-                      className="block text-xs font-medium text-slate-300 mb-1.5"
+                      className="block text-xs font-medium text-white mb-1.5"
                     >
                       {t('create.audioFile')}
                     </label>
@@ -1019,7 +1019,7 @@ export default function Home() {
                       id="audio-file"
                       type="file"
                       accept="audio/*"
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-white/15 text-slate-300 text-xs file:mr-2.5 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-indigo-600 file:text-white hover:file:bg-indigo-500 cursor-pointer"
+                      className="w-full px-3 py-2 rounded-xl bg-[#1A1A1A] border border-white/10 text-white/80 text-xs file:mr-2.5 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-white file:text-black hover:file:bg-white/90 active:file:scale-[0.98] cursor-pointer"
                       required
                     />
                   </div>
@@ -1027,7 +1027,7 @@ export default function Home() {
                   <div className="sm:col-span-2">
                     <label
                       htmlFor="template-select"
-                      className="block text-xs font-medium text-slate-300 mb-1.5"
+                      className="block text-xs font-medium text-white mb-1.5"
                     >
                       {t('create.template')}
                     </label>
@@ -1035,10 +1035,10 @@ export default function Home() {
                       id="template-select"
                       value={selectedTemplateId}
                       onChange={(e) => setSelectedTemplateId(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-lg bg-slate-900 border border-white/15 text-white text-sm focus:outline-none focus:border-indigo-500"
+                      className="w-full h-11 px-4 rounded-xl bg-[#1A1A1A] border border-white/5 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/20 cursor-pointer transition-all"
                     >
                       {TEMPLATES.map((tpl) => (
-                        <option key={tpl.id} value={tpl.id}>
+                        <option key={tpl.id} value={tpl.id} className="bg-[#1A1A1A] text-white">
                           {tpl.name} ({isZh ? tpl.nameZh : tpl.name} ·{' '}
                           {isZh ? tpl.tagZh : tpl.tag})
                         </option>
@@ -1047,22 +1047,22 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="flex items-center justify-end gap-3 pt-3">
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10 mt-2">
                   <button
                     type="button"
                     onClick={() => setShowCreate(false)}
-                    className="px-4 py-2 rounded-lg border border-white/15 text-slate-300 hover:bg-white/5 text-sm transition-colors cursor-pointer"
+                    className="h-11 px-5 rounded-xl border border-white/10 bg-black/60 text-white hover:bg-white/5 active:scale-[0.98] text-sm transition-all cursor-pointer"
                   >
                     {t('create.cancel')}
                   </button>
                   <button
                     type="submit"
                     disabled={uploading}
-                    className="btn-primary min-w-[130px] text-sm py-2 px-4 shadow-lg shadow-indigo-600/30 cursor-pointer"
+                    className="h-11 min-w-[140px] px-6 rounded-xl bg-white text-black font-semibold hover:bg-white/90 active:scale-[0.98] text-sm shadow-md shadow-white/5 transition-all cursor-pointer"
                   >
                     {uploading ? (
-                      <span className="flex items-center gap-2">
-                        <LoaderCircle className="animate-spin h-4 w-4" />
+                      <span className="flex items-center justify-center gap-2">
+                        <LoaderCircle className="animate-spin h-4 w-4 text-black" />
                         <span>{t('create.uploading')}</span>
                       </span>
                     ) : (

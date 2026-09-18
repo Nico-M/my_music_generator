@@ -22,3 +22,6 @@ export type { DepthCarouselProps, DepthCarouselItem, DepthCarouselItemObject } f
 export { default as Shuffle } from './Shuffle';
 export type { ShuffleProps } from './Shuffle';
 
+export { default as ElectricBorder } from './ElectricBorder';
+export type { ElectricBorderProps } from './ElectricBorder';
+

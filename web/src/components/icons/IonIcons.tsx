@@ -223,3 +223,33 @@ export function Trash2(props: IconProps) {
     </StrokedIcon>
   );
 }
+
+export function Settings(props: IconProps) {
+  return (
+    <StrokedIcon strokeWidth={32} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <circle cx="256" cy="256" r="64" />
+      <path d="M256,48v48m0,320v48m147.08-355.08-33.94,33.94m-226.28,226.28-33.94,33.94m355.08-147.08h-48m-320,0h-48m355.08,147.08-33.94-33.94m-226.28-226.28-33.94-33.94" />
+    </StrokedIcon>
+  );
+}
+
+export function Download(props: IconProps) {
+  return (
+    <StrokedIcon strokeWidth={36} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M336,240l-80,80-80-80" />
+      <line x1="256" y1="80" x2="256" y2="320" />
+      <path d="M80,384H432" />
+    </StrokedIcon>
+  );
+}
+
+export function ExternalLink(props: IconProps) {
+  return (
+    <StrokedIcon strokeWidth={36} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M384,224V400a48,48,0,0,1-48,48H112a48,48,0,0,1-48-48V176a48,48,0,0,1,48-48H288" />
+      <polyline points="336 64 448 64 448 176" />
+      <line x1="224" y1="288" x2="440" y2="72" />
+    </StrokedIcon>
+  );
+}
+

@@ -22,41 +22,40 @@ export default function JobStatusBar({ activeJobs, finishedJobs, onDismiss }: Jo
   if (activeJobs.length === 0 && finishedJobs.length === 0) return null;
 
   return (
-    <div className="space-y-1">
+    <div className="space-y-1.5">
       {activeJobs.map(job => (
-        <div key={job.jobId} className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs" style={{ background: 'var(--color-surface-2)', border: '1px solid var(--color-border)' }}>
-          <LoaderCircle className="animate-spin h-3.5 w-3.5 shrink-0" style={{ color: 'var(--color-accent)' }} />
-          <span style={{ color: 'var(--color-text-muted)' }}>{JOB_LABELS[job.type]}</span>
-          <span style={{ color: 'var(--color-text-subtle)' }}>{job.status === 'queued' ? t('jobs.queued') : t('jobs.processing')}</span>
+        <div key={job.jobId} className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs bg-[#141418]/90 border border-white/10 text-white shadow-md backdrop-blur-md">
+          <LoaderCircle className="animate-spin h-3.5 w-3.5 shrink-0 text-white/80" />
+          <span className="font-semibold text-white">{JOB_LABELS[job.type]}</span>
+          <span className="text-white/40">{job.status === 'queued' ? t('jobs.queued') : t('jobs.processing')}</span>
         </div>
       ))}
 
       {finishedJobs.map(job => (
         <div
           key={job.jobId}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs border"
-          style={{
-            background: 'var(--color-surface-2)',
-            borderColor: job.status === 'done' ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)',
-          }}
+          className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs border shadow-md backdrop-blur-md ${
+            job.status === 'done'
+              ? 'bg-emerald-950/70 border-emerald-500/30 text-emerald-200'
+              : 'bg-rose-950/70 border-rose-500/30 text-rose-200'
+          }`}
         >
           {job.status === 'done' ? (
-            <CheckCircle className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--color-primary)' }} />
+            <CheckCircle className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
           ) : (
-            <XCircle className="h-3.5 w-3.5 shrink-0" style={{ color: 'var(--color-danger)' }} />
+            <XCircle className="h-3.5 w-3.5 shrink-0 text-rose-400" />
           )}
-          <span style={{ color: job.status === 'done' ? 'var(--color-primary-light)' : 'var(--color-danger)' }}>
+          <span className="font-semibold">
             {JOB_LABELS[job.type]}
           </span>
-          <span className="flex-1" style={{ color: job.status === 'done' ? 'var(--color-text-subtle)' : 'var(--color-danger)' }}>
+          <span className="flex-1 text-slate-300">
             {job.status !== 'done'
               ? (job.error || t('jobs.failed', { error: '' }).replace(': ', ''))
               : t('jobs.complete')}
           </span>
           <button
             onClick={() => onDismiss(job.jobId)}
-            className="shrink-0 w-7 h-7 flex items-center justify-center rounded hover:opacity-80 transition-opacity"
-            style={{ color: 'var(--color-text-subtle)' }}
+            className="shrink-0 w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>

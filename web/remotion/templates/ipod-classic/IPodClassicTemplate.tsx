@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { useCurrentFrame, useVideoConfig, interpolate, Easing } from 'remotion';
+import { useCurrentFrame, useVideoConfig, interpolate, Easing, spring } from 'remotion';
 import type { TemplateRenderProps, BaseLyricLine } from '../types';
 import {
   type IPodClassicConfig,
@@ -7,6 +7,9 @@ import {
   getWheelThemeStyles,
 } from './config';
 import { getActiveLineState } from '../shared/timing';
+
+const FPS = 30;
+const clampOpts = { extrapolateLeft: 'clamp' as const, extrapolateRight: 'clamp' as const };
 
 function formatTime(totalMs: number): string {
   const safeMs = Math.max(0, totalMs);
@@ -139,8 +142,20 @@ export const IPodClassicTemplate: React.FC<TemplateRenderProps<IPodClassicConfig
     );
   }, [timedLines, activeSegment, nowMs]);
 
-  // Ambient breath oscillation
+  // Ambient breath oscillation & 3D acoustic micro-tilt physics (frame-smith standard)
   const ambientPulse = 1 + Math.sin(frame * 0.04) * 0.035;
+  const ipodBobY = Math.sin(frame * 0.03) * 6;
+  const ipodTiltX = Math.sin(frame * 0.024) * 2.5 + Math.cos(frame * 0.012) * 1;
+  const ipodTiltY = Math.cos(frame * 0.02) * 3 + Math.sin(frame * 0.015) * 1;
+
+  // Active lyric spring-overshoot pop
+  const activeSegmentStart = activeSegment >= 0 ? timedLines[activeSegment]?.startMs ?? 0 : 0;
+  const activeLocalFrame = Math.max(0, (nowMs - activeSegmentStart) / (1000 / fps));
+  const activeSpring = spring({
+    frame: activeLocalFrame,
+    fps,
+    config: { damping: 13, stiffness: 145 },
+  });
 
   const displayTitle = data.title || 'Song Title';
   const displaySinger = data.singer || 'Various Artists';
@@ -179,7 +194,7 @@ export const IPodClassicTemplate: React.FC<TemplateRenderProps<IPodClassicConfig
         }}
       />
 
-      {/* --- iPod Classic Centered Scaled Assembly (Larger & Shifted Upward) --- */}
+      {/* --- iPod Classic Centered Scaled Assembly with 3D Acoustic Perspective --- */}
       <div
         style={{
           position: 'absolute',
@@ -187,8 +202,9 @@ export const IPodClassicTemplate: React.FC<TemplateRenderProps<IPodClassicConfig
           top: '50%',
           width: 750,
           height: 1240,
-          transform: 'translate(-50%, -50%) translateY(-110px) scale(1.18)',
+          transform: `translate(-50%, -50%) translateY(${-110 + ipodBobY}px) perspective(1400px) rotateX(${ipodTiltX}deg) rotateY(${ipodTiltY}deg) scale(1.18)`,
           transformOrigin: 'center center',
+          transformStyle: 'preserve-3d',
           zIndex: 10,
         }}
       >
@@ -906,7 +922,7 @@ export const IPodClassicTemplate: React.FC<TemplateRenderProps<IPodClassicConfig
                         {timedLines.map((line, idx) => {
                           const isActive = idx === activeSegment;
                           const dist = Math.abs(idx - (activeSegment >= 0 ? activeSegment : 0));
-                          const opacity = isActive ? 1 : Math.max(0.28, 0.8 - dist * 0.35);
+                          const opacity = isActive ? 1 : Math.max(0.25, 0.75 - dist * 0.3);
 
                           return (
                             <div
@@ -916,17 +932,27 @@ export const IPodClassicTemplate: React.FC<TemplateRenderProps<IPodClassicConfig
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 6,
+                                padding: '0 8px',
+                                borderRadius: 4,
+                                background: isActive
+                                  ? 'linear-gradient(to bottom, #3b93f7 0%, #1a6edb 50%, #155cb8 100%)'
+                                  : 'transparent',
+                                boxShadow: isActive
+                                  ? 'inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 2px 6px rgba(10, 45, 100, 0.25)'
+                                  : 'none',
                                 opacity,
-                                transform: isActive ? 'scale(1.02)' : 'scale(0.97)',
+                                transform: isActive ? `scale(${1 + activeSpring * 0.03})` : 'scale(0.97)',
                                 transformOrigin: 'left center',
+                                transition: 'background 0.15s ease',
                               }}
                             >
                               {isActive && (
                                 <span
                                   style={{
-                                    color: '#185ec2',
-                                    fontSize: 13,
+                                    color: '#FFFFFF',
+                                    fontSize: 11,
                                     lineHeight: 1,
+                                    filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.5))',
                                   }}
                                 >
                                   ▶
@@ -934,9 +960,10 @@ export const IPodClassicTemplate: React.FC<TemplateRenderProps<IPodClassicConfig
                               )}
                               <span
                                 style={{
-                                  fontSize: isActive ? 16 : 14,
+                                  fontSize: isActive ? 15 : 14,
                                   fontWeight: isActive ? 700 : 500,
-                                  color: isActive ? '#0d2244' : '#576f8e',
+                                  color: isActive ? '#FFFFFF' : '#476282',
+                                  textShadow: isActive ? '0 1px 1px rgba(0, 20, 60, 0.6)' : 'none',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   whiteSpace: 'nowrap',
@@ -1132,3 +1159,9 @@ export const IPodClassicTemplate: React.FC<TemplateRenderProps<IPodClassicConfig
   </div>
   );
 };
+
+// Export三件套 (frame-smith standard contract)
+export const IPOD_CLASSIC_FRAMES = 1800;
+export const IPodClassicTemplateCover: React.FC<TemplateRenderProps<IPodClassicConfig>> = (props) => (
+  <IPodClassicTemplate {...props} />
+);
