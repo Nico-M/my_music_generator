@@ -1,14 +1,13 @@
 import React, { useMemo } from 'react';
-import { useCurrentFrame, useVideoConfig, interpolate, Easing } from 'remotion';
+import { useCurrentFrame, useVideoConfig, interpolate, Easing, Loop, OffthreadVideo, staticFile } from 'remotion';
 import type { TemplateRenderProps } from '../types';
 import type { LiquidWaveConfig } from './config';
 import { getLiquidColors } from './config';
-import { getActiveLineState } from '../shared/timing';
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
-const LYRIC_LINE_HEIGHT = 86;
-const LYRIC_VIEWPORT_H = 340;
+const LYRIC_LINE_HEIGHT = 88;
+const LYRIC_VIEWPORT_H = 780;
 
 function formatTime(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
@@ -17,151 +16,26 @@ function formatTime(ms: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-// Generate organic tidal wave path for bottom (1/3 screen height ~650px)
-function buildTidalPath(
-  baseY: number,
-  amplitude: number,
-  wavelength: number,
-  phase: number,
-  bottomY: number,
-  samples = 22
-): string {
-  const startX = -60;
-  const endX = WIDTH + 60;
-  const step = (endX - startX) / samples;
-  const pointY = (x: number) =>
-    baseY +
-    Math.sin((x / wavelength) * Math.PI * 2 + phase) * amplitude +
-    Math.cos((x / (wavelength * 0.58)) * Math.PI * 2 - phase * 0.68) * (amplitude * 0.32);
-
-  let d = `M ${startX} ${pointY(startX).toFixed(1)}`;
-  let prevX = startX;
-  let prevY = pointY(startX);
-
-  for (let i = 1; i <= samples; i++) {
-    const x = startX + i * step;
-    const y = pointY(x);
-    const cx = (prevX + x) / 2;
-    const cy = (prevY + y) / 2;
-    d += ` Q ${prevX.toFixed(1)} ${prevY.toFixed(1)}, ${cx.toFixed(1)} ${cy.toFixed(1)}`;
-    prevX = x;
-    prevY = y;
-  }
-  d += ` L ${endX} ${bottomY} L ${startX} ${bottomY} Z`;
-  return d;
-}
-
-function buildTidalCrestPath(
-  baseY: number,
-  amplitude: number,
-  wavelength: number,
-  phase: number,
-  samples = 22
-): string {
-  const startX = -60;
-  const endX = WIDTH + 60;
-  const step = (endX - startX) / samples;
-  const pointY = (x: number) =>
-    baseY +
-    Math.sin((x / wavelength) * Math.PI * 2 + phase) * amplitude +
-    Math.cos((x / (wavelength * 0.58)) * Math.PI * 2 - phase * 0.68) * (amplitude * 0.32);
-
-  let d = `M ${startX} ${pointY(startX).toFixed(1)}`;
-  let prevX = startX;
-  let prevY = pointY(startX);
-
-  for (let i = 1; i <= samples; i++) {
-    const x = startX + i * step;
-    const y = pointY(x);
-    const cx = (prevX + x) / 2;
-    const cy = (prevY + y) / 2;
-    d += ` Q ${prevX.toFixed(1)} ${prevY.toFixed(1)}, ${cx.toFixed(1)} ${cy.toFixed(1)}`;
-    prevX = x;
-    prevY = y;
-  }
-  return d;
-}
-
-interface UnderwaterBubble {
+interface StarlightParticle {
   x: number;
   y: number;
   size: number;
+  speed: number;
   opacity: number;
-  scale: number;
+  twinkleFreq: number;
+  phase: number;
 }
 
-const WATER_WAVE_HEIGHT = 650; // ~1/3 of 1920 (640px)
-const WATER_SURFACE_Y = HEIGHT - WATER_WAVE_HEIGHT + 70; // ~1340px
-const WATER_BOTTOM_Y = HEIGHT; // 1920px
-
-const BUBBLE_SEEDS = [
-  { x: 90,  speed: 2.1, size: 16, wobbleSpeed: 0.04, wobbleAmp: 14, phase: 0.2, delay: 0 },
-  { x: 170, speed: 2.7, size: 9,  wobbleSpeed: 0.06, wobbleAmp: 10, phase: 1.1, delay: 180 },
-  { x: 230, speed: 1.8, size: 22, wobbleSpeed: 0.035, wobbleAmp: 16, phase: 2.4, delay: 360 },
-  { x: 300, speed: 3.0, size: 7,  wobbleSpeed: 0.07, wobbleAmp: 8,  phase: 3.1, delay: 90 },
-  { x: 360, speed: 2.3, size: 18, wobbleSpeed: 0.045, wobbleAmp: 12, phase: 0.8, delay: 480 },
-  { x: 420, speed: 2.5, size: 11, wobbleSpeed: 0.05, wobbleAmp: 9,  phase: 4.2, delay: 240 },
-  { x: 480, speed: 1.9, size: 26, wobbleSpeed: 0.03, wobbleAmp: 18, phase: 1.7, delay: 600 },
-  { x: 540, speed: 2.8, size: 8,  wobbleSpeed: 0.065, wobbleAmp: 11, phase: 5.0, delay: 150 },
-  { x: 600, speed: 2.2, size: 15, wobbleSpeed: 0.04, wobbleAmp: 13, phase: 2.9, delay: 420 },
-  { x: 670, speed: 3.1, size: 7,  wobbleSpeed: 0.075, wobbleAmp: 7, phase: 0.5, delay: 30 },
-  { x: 730, speed: 2.0, size: 24, wobbleSpeed: 0.032, wobbleAmp: 15, phase: 3.7, delay: 520 },
-  { x: 800, speed: 2.6, size: 12, wobbleSpeed: 0.055, wobbleAmp: 10, phase: 1.4, delay: 270 },
-  { x: 870, speed: 2.4, size: 17, wobbleSpeed: 0.042, wobbleAmp: 12, phase: 4.8, delay: 390 },
-  { x: 940, speed: 2.9, size: 8,  wobbleSpeed: 0.06, wobbleAmp: 8,  phase: 2.1, delay: 120 },
-  { x: 130, speed: 2.4, size: 13, wobbleSpeed: 0.048, wobbleAmp: 11, phase: 5.6, delay: 310 },
-  { x: 270, speed: 3.2, size: 6,  wobbleSpeed: 0.08, wobbleAmp: 7,  phase: 0.9, delay: 70 },
-  { x: 390, speed: 1.7, size: 25, wobbleSpeed: 0.03, wobbleAmp: 19, phase: 3.3, delay: 580 },
-  { x: 510, speed: 2.7, size: 10, wobbleSpeed: 0.058, wobbleAmp: 9, phase: 2.0, delay: 210 },
-  { x: 640, speed: 2.3, size: 19, wobbleSpeed: 0.041, wobbleAmp: 14, phase: 4.5, delay: 450 },
-  { x: 770, speed: 3.0, size: 7,  wobbleSpeed: 0.072, wobbleAmp: 8, phase: 1.2, delay: 140 },
-  { x: 840, speed: 2.1, size: 21, wobbleSpeed: 0.038, wobbleAmp: 16, phase: 3.9, delay: 340 },
-  { x: 910, speed: 2.8, size: 9,  wobbleSpeed: 0.062, wobbleAmp: 9, phase: 0.4, delay: 500 },
-  { x: 200, speed: 2.5, size: 14, wobbleSpeed: 0.052, wobbleAmp: 12, phase: 2.7, delay: 170 },
-  { x: 340, speed: 2.0, size: 20, wobbleSpeed: 0.036, wobbleAmp: 15, phase: 4.1, delay: 630 },
-  { x: 460, speed: 3.1, size: 8,  wobbleSpeed: 0.076, wobbleAmp: 8, phase: 1.8, delay: 290 },
-  { x: 580, speed: 2.2, size: 16, wobbleSpeed: 0.043, wobbleAmp: 13, phase: 5.3, delay: 80 },
-  { x: 700, speed: 2.9, size: 10, wobbleSpeed: 0.064, wobbleAmp: 10, phase: 3.0, delay: 400 },
-  { x: 820, speed: 1.8, size: 23, wobbleSpeed: 0.033, wobbleAmp: 17, phase: 0.7, delay: 560 },
-  { x: 150, speed: 3.3, size: 6,  wobbleSpeed: 0.082, wobbleAmp: 6, phase: 4.4, delay: 20 },
-  { x: 630, speed: 2.6, size: 12, wobbleSpeed: 0.054, wobbleAmp: 11, phase: 2.3, delay: 260 },
-  { x: 760, speed: 2.4, size: 15, wobbleSpeed: 0.046, wobbleAmp: 13, phase: 1.5, delay: 470 },
-  { x: 890, speed: 3.0, size: 8,  wobbleSpeed: 0.07, wobbleAmp: 7,  phase: 3.6, delay: 190 },
-];
-
-function getUnderwaterBubbles(frame: number, speedMul: number): UnderwaterBubble[] {
-  const travelDist = WATER_BOTTOM_Y - WATER_SURFACE_Y + 90; // ~670px
-
-  return BUBBLE_SEEDS.map((s) => {
-    const cycle = (frame * s.speed * speedMul * 1.5 + s.delay) % travelDist;
-    const y = WATER_BOTTOM_Y + 30 - cycle;
-    const driftX =
-      Math.sin(frame * s.wobbleSpeed * speedMul + s.phase) * s.wobbleAmp +
-      Math.cos(frame * 0.02 * speedMul + s.phase * 1.6) * (s.wobbleAmp * 0.35);
-    const x = s.x + driftX;
-
-    let opacity = 0.85;
-    let scale = 1.0;
-
-    // Fade in as it emerges from deep bottom
-    if (y > WATER_BOTTOM_Y - 50) {
-      opacity = Math.max(0, (WATER_BOTTOM_Y + 30 - y) / 80) * 0.85;
-    } else if (y < WATER_SURFACE_Y + 70) {
-      // Near surface: bubble expands slightly and pops
-      const popDist = Math.min(1, Math.max(0, (WATER_SURFACE_Y + 70 - y) / 70));
-      scale = 1 + popDist * 0.45;
-      opacity = (1 - popDist) * 0.85;
-    }
-
-    return {
-      x,
-      y,
-      size: s.size,
-      opacity,
-      scale,
-    };
-  });
-}
+// Procedural floating starlight motes that complement the dark liquid wave
+const STARLIGHT_SEEDS: StarlightParticle[] = Array.from({ length: 28 }).map((_, i) => ({
+  x: (i * 39 + 35) % WIDTH,
+  y: (i * 67 + 50) % HEIGHT,
+  size: (i % 3 === 0 ? 2.5 : i % 2 === 0 ? 1.8 : 1.2),
+  speed: 0.35 + (i % 5) * 0.15,
+  opacity: 0.4 + (i % 4) * 0.15,
+  twinkleFreq: 0.04 + (i % 3) * 0.02,
+  phase: i * 0.7,
+}));
 
 export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>> = ({
   data,
@@ -173,31 +47,26 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
   const colors = getLiquidColors(config.colorScheme);
 
   const speedMul =
-    config.waveSpeed === 'fast' ? 1.4 : config.waveSpeed === 'medium' ? 1 : 0.7;
+    config.waveSpeed === 'fast' ? 1.3 : config.waveSpeed === 'medium' ? 1 : 0.75;
 
   const totalDurationMs = Math.max(data.durationMs || 0, 1000);
   const progressRatio = Math.min(1, Math.max(0, nowMs / totalDurationMs));
 
-  // Floating disc motion: slight vertical bob and gentle rotation
-  const discBobY = Math.sin(frame * 0.032 * speedMul) * 12;
-  const discRotation = frame * 0.22 * speedMul;
+  // Subtle vinyl / disc rotation and gentle fluid floating
+  const discBobY = Math.sin(frame * 0.025 * speedMul) * 10;
+  const discRotation = frame * 0.35 * speedMul;
 
-  // Concentric ripples expanding outwards from disc center (cy = 390)
-  const discCenterY = 390;
+  // Concentric liquid ripples expanding from disc
   const rippleCount = config.rippleCount || 4;
   const ripples = Array.from({ length: rippleCount }).map((_, i) => {
-    const period = 90 / speedMul;
+    const period = 100 / speedMul;
     const t = ((frame + i * (period / rippleCount)) % period) / period;
-    const radius = 160 + t * 200;
-    const opacity = (1 - t) * 0.45;
+    const radius = 175 + t * 240;
+    const opacity = (1 - t) * 0.35;
     return { radius, opacity };
   });
 
-  const bubbles = config.showParticles ? getUnderwaterBubbles(frame, speedMul) : [];
-
-  // ------------------------------------------------------------------------
-  // Smooth Kinetic Scrolling Lyrics Stream (Deterministic Math, 0 Jitter)
-  // ------------------------------------------------------------------------
+  // Timed lyrics logic
   const timedLines = useMemo(() => {
     const list: { lineIdx: number; startMs: number; text: string }[] = [];
     for (let i = 0; i < data.lines.length; i++) {
@@ -251,7 +120,7 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
     }
 
     const gap = current.startMs - prev.startMs;
-    const scrollDuration = Math.min(340, Math.max(180, gap * 0.35));
+    const scrollDuration = Math.min(360, Math.max(180, gap * 0.38));
 
     return interpolate(
       nowMs,
@@ -267,6 +136,25 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
 
   const CENTER_Y = (LYRIC_VIEWPORT_H - LYRIC_LINE_HEIGHT) / 2;
 
+  // Floating particles
+  const particles = useMemo(() => {
+    if (!config.showParticles) return [];
+    return STARLIGHT_SEEDS.map((p, idx) => {
+      const yOffset = (frame * p.speed * speedMul * 1.2 + idx * 80) % HEIGHT;
+      const curY = (p.y - yOffset + HEIGHT) % HEIGHT;
+      const curX = p.x + Math.sin(frame * 0.02 + p.phase) * 12;
+      const twinkle = 0.5 + Math.sin(frame * p.twinkleFreq + p.phase) * 0.5;
+      return {
+        x: curX,
+        y: curY,
+        size: p.size,
+        opacity: p.opacity * twinkle,
+      };
+    });
+  }, [config.showParticles, frame, speedMul]);
+
+  const discCenterY = 320;
+
   return (
     <div
       style={{
@@ -274,65 +162,104 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
         height: HEIGHT,
         position: 'relative',
         overflow: 'hidden',
-        backgroundColor: colors.base,
+        backgroundColor: '#000000',
         fontFamily:
-          '-apple-system, BlinkMacSystemFont, "SF Pro Display", "Plus Jakarta Sans", "Helvetica Neue", Arial, sans-serif',
+          '"Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", sans-serif',
         color: '#FFFFFF',
       }}
     >
-      {/* ===== LAYER 1: DEEP FLUID GRADIENT BACKGROUND ===== */}
+      {/* ===== GLOBAL TYPOGRAPHY IMPORT ===== */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
+
+        .instrument-serif {
+          font-family: 'Instrument Serif', 'Noto Serif SC', 'Source Han Serif SC', Georgia, serif;
+          font-style: italic;
+        }
+      `}</style>
+
+      {/* ===== LAYER 1: PURE DARK BASE CANVAS ===== */}
       <div
         style={{
           position: 'absolute',
           inset: 0,
-          background: `
-            radial-gradient(circle 800px at 50% 20%, ${colors.accent1}24 0%, transparent 70%),
-            radial-gradient(circle 900px at 80% 60%, ${colors.accent2}20 0%, transparent 65%),
-            radial-gradient(circle 700px at 20% 80%, ${colors.accent3}1e 0%, transparent 60%),
-            linear-gradient(180deg, ${colors.base} 0%, #030810 100%)
-          `,
+          backgroundColor: '#000000',
         }}
       />
 
-      {/* ===== LAYER 2: ORGANIC CAUSTIC LIGHT BLOBS ===== */}
-      {true && (
-        <>
-          <div
+      {/* ===== LAYER 2: DARK LIQUID WAVE VIDEO LOOP ===== */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          overflow: 'hidden',
+          zIndex: 1,
+          pointerEvents: 'none',
+        }}
+      >
+        <Loop durationInFrames={Math.round(10.04 * fps)}>
+          <OffthreadVideo
+            src={staticFile('assets/templates/liquid-wave/wave-bg.mp4')}
             style={{
-              position: 'absolute',
-              top: 240 + Math.sin(frame * 0.02 * speedMul) * 35,
-              left: 140 + Math.cos(frame * 0.015 * speedMul) * 50,
-              width: 500,
-              height: 500,
-              borderRadius: '50%',
-              background: `radial-gradient(circle, ${colors.accent1}33 0%, transparent 70%)`,
-              filter: 'blur(60px)',
-              pointerEvents: 'none',
-              opacity: 0.65,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center 45%',
+              opacity: 0.88,
+              filter: 'contrast(1.15) brightness(0.95)',
             }}
+            muted
           />
-          <div
-            style={{
-              position: 'absolute',
-              top: 760 + Math.cos(frame * 0.025 * speedMul) * 40,
-              right: 120 + Math.sin(frame * 0.018 * speedMul) * 60,
-              width: 460,
-              height: 460,
-              borderRadius: '50%',
-              background: `radial-gradient(circle, ${colors.accent2}26 0%, transparent 70%)`,
-              filter: 'blur(70px)',
-              pointerEvents: 'none',
-              opacity: 0.6,
-            }}
-          />
-        </>
-      )}
+        </Loop>
 
-      {/* ===== LAYER 3: CONCENTRIC WATER RIPPLES ===== */}
+        {/* Seamless Vignette overlay to melt into pure black */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            background:
+              'linear-gradient(180deg, #000000 0%, rgba(0,0,0,0.4) 18%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.5) 82%, #000000 100%)',
+          }}
+        />
+
+        {/* Color Scheme Tint overlay (if non-mono) */}
+        {config.colorScheme !== 'mono' && (
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              background: `radial-gradient(circle 900px at 50% 45%, ${colors.accent1}30 0%, transparent 70%)`,
+              mixBlendMode: 'screen',
+            }}
+          />
+        )}
+      </div>
+
+      {/* ===== LAYER 3: DRIFTING STARLIGHT PARTICULATES ===== */}
+      {particles.map((p, i) => (
+        <div
+          key={i}
+          style={{
+            position: 'absolute',
+            left: p.x,
+            top: p.y,
+            width: p.size,
+            height: p.size,
+            borderRadius: '50%',
+            backgroundColor: '#FFFFFF',
+            boxShadow: `0 0 ${p.size * 3}px rgba(255, 255, 255, 0.8)`,
+            opacity: p.opacity,
+            zIndex: 4,
+            pointerEvents: 'none',
+          }}
+        />
+      ))}
+
+      {/* ===== LAYER 4: CONCENTRIC LIQUID RIPPLES ===== */}
       <svg
         width={WIDTH}
         height={HEIGHT}
-        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 10 }}
+        style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 6 }}
       >
         {ripples.map((r, idx) => (
           <circle
@@ -341,27 +268,32 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
             cy={discCenterY + discBobY}
             r={r.radius}
             fill="none"
-            stroke={colors.accent1}
-            strokeWidth={1.8}
-            strokeDasharray="8 6"
+            stroke="rgba(255, 255, 255, 0.25)"
+            strokeWidth={1.2}
+            strokeDasharray="4 6"
             opacity={r.opacity}
           />
         ))}
       </svg>
 
-      {/* ===== LAYER 4: FLOATING DISK CENTERPIECE (BORDERLESS) ===== */}
+      {/* ===== LAYER 5: LIQUID-GLASS & METALLIC VINYL CENTERPIECE ===== */}
       <div
         style={{
           position: 'absolute',
-          top: discCenterY - 140 + discBobY,
-          left: WIDTH / 2 - 140,
-          width: 280,
-          height: 280,
+          top: discCenterY - 145 + discBobY,
+          left: WIDTH / 2 - 145,
+          width: 290,
+          height: 290,
           borderRadius: '50%',
           overflow: 'hidden',
-          backgroundColor: '#050D18',
-          boxShadow: `0 20px 60px rgba(0,0,0,0.75), 0 0 35px ${colors.accent1}55`,
-          zIndex: 20,
+          backgroundColor: '#050505',
+          border: '1px solid rgba(255, 255, 255, 0.22)',
+          boxShadow: `
+            0 25px 60px rgba(0, 0, 0, 0.95),
+            inset 0 1px 0 rgba(255, 255, 255, 0.4),
+            0 0 40px ${colors.glassGlow}
+          `,
+          zIndex: 10,
         }}
       >
         <div
@@ -390,19 +322,20 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
               }}
             />
           ) : (
-            /* Procedural Ripple Vinyl Fallback */
+            /* Procedural Dark Liquid Mercury Vinyl Fallback */
             <div
               style={{
                 width: '100%',
                 height: '100%',
-                background: `radial-gradient(circle, ${colors.accent2}33 0%, #060e1a 75%)`,
+                background:
+                  'radial-gradient(circle, #242428 0%, #111114 45%, #050507 85%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 position: 'relative',
               }}
             >
-              {[100, 70, 40].map((dim, idx) => (
+              {[110, 85, 60, 35].map((dim, idx) => (
                 <div
                   key={idx}
                   style={{
@@ -410,70 +343,120 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
                     width: dim * 2,
                     height: dim * 2,
                     borderRadius: '50%',
-                    border: `1px solid ${colors.accent1}25`,
+                    border: '1px solid rgba(255, 255, 255, 0.12)',
                   }}
                 />
               ))}
+              {/* Spindle centerpiece */}
               <div
                 style={{
-                  width: 38,
-                  height: 38,
+                  width: 44,
+                  height: 44,
                   borderRadius: '50%',
-                  backgroundColor: colors.accent1,
-                  boxShadow: `0 0 16px ${colors.accent1}`,
+                  background:
+                    'linear-gradient(135deg, #FFFFFF 0%, #A0A0A0 50%, #404040 100%)',
+                  boxShadow: '0 0 20px rgba(255, 255, 255, 0.5)',
+                  border: '1px solid rgba(255, 255, 255, 0.8)',
                 }}
               />
             </div>
           )}
 
-          {/* Liquid Glass Shimmer reflection */}
+          {/* Liquid-Glass Shimmer Specular Sweep */}
           <div
             style={{
               position: 'absolute',
               inset: 0,
               background:
-                'linear-gradient(135deg, rgba(255,255,255,0.25) 0%, transparent 45%, transparent 100%)',
+                'linear-gradient(125deg, rgba(255,255,255,0.3) 0%, transparent 45%, transparent 100%)',
               pointerEvents: 'none',
             }}
           />
         </div>
       </div>
 
-      {/* ===== LAYER 5: SONG TITLE & SINGER ===== */}
+      {/* ===== LAYER 6: SONG HEADER (METALLIC BADGE + INSTRUMENT SERIF TITLE) ===== */}
       <div
         style={{
           position: 'absolute',
-          top: 560,
-          left: 72,
-          right: 72,
+          top: 505,
+          left: 64,
+          right: 64,
           textAlign: 'center',
-          zIndex: 30,
+          zIndex: 15,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
         }}
       >
+        {/* Vesper-inspired Liquid-Metal Pill Badge */}
+        <div
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '8px 20px',
+            borderRadius: 24,
+            border: '1px solid rgba(198, 198, 198, 0.35)',
+            background:
+              'linear-gradient(105deg, rgba(12, 12, 14, 0.85) 0%, rgba(42, 42, 48, 0.65) 50%, rgba(70, 70, 80, 0.45) 100%)',
+            boxShadow:
+              'inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 8px 24px rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(16px)',
+            marginBottom: 16,
+          }}
+        >
+          {/* Sparkle Icon */}
+          <svg
+            width={16}
+            height={16}
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            style={{ color: '#FFFFFF', filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }}
+          >
+            <path d="M12 2.6C12.55 2.6 12.88 3.15 13.08 4.7c.62 4.7 1.52 5.6 6.22 6.22 1.55.2 2.1.53 2.1 1.08s-.55.88-2.1 1.08c-4.7.62-5.6 1.52-6.22 6.22-.2 1.55-.53 2.1-1.08 2.1s-.88-.55-1.08-2.1c-.62-4.7-1.52-5.6-6.22-6.22C3.15 12.88 2.6 12.55 2.6 12s.55-.88 2.1-1.08c4.7-.62 5.6-1.52 6.22-6.22C11.12 3.15 11.45 2.6 12 2.6Z" />
+          </svg>
+          <span
+            style={{
+              fontSize: 14,
+              fontWeight: 500,
+              letterSpacing: 2,
+              color: '#F2F2F2',
+              textTransform: 'uppercase',
+            }}
+          >
+            {data.creatorName || 'LIQUID WAVE AUDIO'}
+          </span>
+        </div>
+
+        {/* Song Title in Instrument Serif Italic */}
         <h1
+          className="instrument-serif"
           style={{
             margin: 0,
-            fontSize: 60,
-            fontWeight: 800,
-            letterSpacing: 2,
+            fontSize: 66,
+            fontWeight: 400,
+            letterSpacing: '-0.02em',
             color: '#FFFFFF',
-            textShadow: `0 2px 14px rgba(0,0,0,0.6), 0 0 40px ${colors.accent1}55`,
             lineHeight: 1.15,
+            textShadow:
+              '0 4px 30px rgba(255, 255, 255, 0.35), 0 2px 10px rgba(0,0,0,0.8)',
+            maxWidth: 900,
           }}
         >
           {data.title}
         </h1>
+
+        {/* Singer Subtitle in clean Inter sans */}
         {data.singer && (
           <p
             style={{
-              margin: '10px 0 0 0',
-              fontSize: 40,
+              margin: '12px 0 0 0',
+              fontSize: 24,
               fontWeight: 500,
-              color: colors.accent2,
+              color: colors.muted,
               letterSpacing: 4,
               textTransform: 'uppercase',
-              textShadow: '0 2px 10px rgba(0,0,0,0.5)',
-              opacity: 0.9,
             }}
           >
             {data.singer}
@@ -481,247 +464,125 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
         )}
       </div>
 
-      {/* ===== LAYER 6: BORDERLESS KINETIC SLIDING LYRICS STREAM ===== */}
+      {/* ===== LAYER 7: LIQUID-GLASS ENCASED LYRICS STREAM ===== */}
       <div
         style={{
           position: 'absolute',
-          top: 670,
-          left: 64,
-          right: 64,
+          top: 730,
+          left: 60,
+          right: 60,
           height: LYRIC_VIEWPORT_H,
+          borderRadius: 36,
+          background: colors.glassBg,
+          border: `1px solid ${colors.glassBorder}`,
+          boxShadow: `
+            inset 0 1px 0 rgba(255, 255, 255, 0.18),
+            0 30px 80px rgba(0, 0, 0, 0.75),
+            0 0 35px ${colors.glassGlow}
+          `,
+          backdropFilter: 'blur(24px)',
           overflow: 'hidden',
-          zIndex: 35,
-          maskImage:
-            'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.85) 18%, black 35%, black 65%, rgba(0,0,0,0.85) 82%, transparent 100%)',
-          WebkitMaskImage:
-            'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.85) 18%, black 35%, black 65%, rgba(0,0,0,0.85) 82%, transparent 100%)',
+          zIndex: 20,
           pointerEvents: 'none',
         }}
       >
+        {/* Inner edge mask for smooth lyrics emergence and departure */}
         <div
-          style={{
-            position: 'relative',
-            width: '100%',
-            transform: `translateY(${-lyricScrollY + CENTER_Y}px) translateZ(0)`,
-            willChange: 'transform',
-          }}
-        >
-          {data.lines.map((line, idx) => {
-            const lineCenterY = idx * LYRIC_LINE_HEIGHT;
-            const distPx = Math.abs(lineCenterY - lyricScrollY);
-            const normDist = distPx / LYRIC_LINE_HEIGHT;
-
-            const opacity = interpolate(normDist, [0, 0.85, 1.8], [1, 0.52, 0.1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
-            const scale = interpolate(normDist, [0, 1.2], [1.06, 0.93], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
-            const isCenter = normDist < 0.45;
-
-            return (
-              <div
-                key={idx}
-                style={{
-                  position: 'absolute',
-                  top: idx * LYRIC_LINE_HEIGHT,
-                  left: 0,
-                  right: 0,
-                  height: LYRIC_LINE_HEIGHT,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  textAlign: 'center',
-                  transform: `scale(${scale})`,
-                  transformOrigin: 'center center',
-                  opacity,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: isCenter ? 48 : 34,
-                    fontWeight: isCenter ? 800 : 500,
-                    color: isCenter ? '#FFFFFF' : colors.accent3,
-                    letterSpacing: isCenter ? 1.5 : 1.2,
-                    lineHeight: 1.25,
-                    padding: '0 32px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {line.text}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ===== LAYER 7: TIDAL WATER WAVES AT BOTTOM (~1/3 SCREEN HEIGHT) ===== */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: WATER_WAVE_HEIGHT,
-          pointerEvents: 'none',
-          zIndex: 18,
-          overflow: 'hidden',
-        }}
-      >
-        <svg
-          width={WIDTH}
-          height={WATER_WAVE_HEIGHT}
-          viewBox={`0 0 ${WIDTH} ${WATER_WAVE_HEIGHT}`}
-          style={{ position: 'absolute', bottom: 0, left: 0 }}
-        >
-          <defs>
-            <linearGradient id="tidal-grad-back" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={colors.accent1} stopOpacity={0.22} />
-              <stop offset="100%" stopColor={colors.accent2} stopOpacity={0.45} />
-            </linearGradient>
-            <linearGradient id="tidal-grad-mid" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={colors.accent2} stopOpacity={0.38} />
-              <stop offset="100%" stopColor={colors.accent3} stopOpacity={0.65} />
-            </linearGradient>
-            <linearGradient id="tidal-grad-front" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor={colors.accent1} stopOpacity={0.32} />
-              <stop offset="50%" stopColor={colors.accent2} stopOpacity={0.55} />
-              <stop offset="100%" stopColor={colors.accent3} stopOpacity={0.82} />
-            </linearGradient>
-            <filter id="crest-glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3.5" result="glow" />
-              <feMerge>
-                <feMergeNode in="glow" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          {/* Underwater Depth Ambient Base */}
-          <rect
-            x={0}
-            y={120}
-            width={WIDTH}
-            height={WATER_WAVE_HEIGHT - 120}
-            fill={colors.base}
-            opacity={0.65}
-          />
-
-          {/* Layer 1: Back Wave */}
-          <path
-            d={buildTidalPath(
-              50,
-              38,
-              540,
-              frame * 0.018 * speedMul + 1.4,
-              WATER_WAVE_HEIGHT
-            )}
-            fill="url(#tidal-grad-back)"
-          />
-
-          {/* Layer 2: Mid Wave */}
-          <path
-            d={buildTidalPath(
-              72,
-              30,
-              430,
-              frame * 0.024 * speedMul + 0.5,
-              WATER_WAVE_HEIGHT
-            )}
-            fill="url(#tidal-grad-mid)"
-          />
-
-          {/* Layer 3: Front Wave */}
-          <path
-            d={buildTidalPath(
-              92,
-              25,
-              350,
-              frame * 0.03 * speedMul,
-              WATER_WAVE_HEIGHT
-            )}
-            fill="url(#tidal-grad-front)"
-          />
-
-          {/* Layer 4: Front Wave Glistening Crest Line */}
-          <path
-            d={buildTidalCrestPath(
-              92,
-              25,
-              350,
-              frame * 0.03 * speedMul
-            )}
-            fill="none"
-            stroke={colors.accent1}
-            strokeWidth={2.4}
-            strokeOpacity={0.85}
-            filter="url(#crest-glow)"
-          />
-        </svg>
-      </div>
-
-      {/* ===== LAYER 8: REALISTIC UNDERWATER RISING BUBBLES ===== */}
-      {bubbles.map((b, i) => (
-        <div
-          key={i}
           style={{
             position: 'absolute',
-            left: b.x - b.size / 2,
-            top: b.y - b.size / 2,
-            width: b.size,
-            height: b.size,
-            borderRadius: '50%',
-            background:
-              'radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.88) 0%, rgba(130, 235, 255, 0.32) 28%, rgba(8, 70, 150, 0.12) 68%, rgba(130, 235, 255, 0.42) 100%)',
-            border: '1.2px solid rgba(220, 245, 255, 0.7)',
-            boxShadow: `inset -1.5px -1.5px 4px rgba(0, 180, 255, 0.35), 0 0 ${Math.max(4, b.size * 0.75)}px ${colors.accent1}77`,
-            opacity: b.opacity,
-            transform: `scale(${b.scale})`,
-            pointerEvents: 'none',
-            zIndex: 22,
+            inset: 0,
+            overflow: 'hidden',
+            maskImage:
+              'linear-gradient(180deg, transparent 0%, black 16%, black 84%, transparent 100%)',
+            WebkitMaskImage:
+              'linear-gradient(180deg, transparent 0%, black 16%, black 84%, transparent 100%)',
           }}
         >
-          {/* Internal Specular Reflection Dot for realistic 3D bubble refraction */}
-          {b.size >= 9 && (
-            <div
-              style={{
-                position: 'absolute',
-                top: '16%',
-                left: '20%',
-                width: Math.max(2, Math.round(b.size * 0.25)),
-                height: Math.max(2, Math.round(b.size * 0.25)),
-                borderRadius: '50%',
-                backgroundColor: '#FFFFFF',
-                opacity: 0.95,
-              }}
-            />
-          )}
-        </div>
-      ))}
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              transform: `translateY(${-lyricScrollY + CENTER_Y}px) translateZ(0)`,
+              willChange: 'transform',
+            }}
+          >
+            {data.lines.map((line, idx) => {
+              const lineCenterY = idx * LYRIC_LINE_HEIGHT;
+              const distPx = Math.abs(lineCenterY - lyricScrollY);
+              const normDist = distPx / LYRIC_LINE_HEIGHT;
 
-      {/* ===== LAYER 9: BOTTOM PROGRESS DOCK ===== */}
+              const opacity = interpolate(normDist, [0, 0.9, 2.2], [1, 0.48, 0.08], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              });
+              const scale = interpolate(normDist, [0, 1.2], [1.05, 0.94], {
+                extrapolateLeft: 'clamp',
+                extrapolateRight: 'clamp',
+              });
+              const isCenter = normDist < 0.45;
+
+              return (
+                <div
+                  key={idx}
+                  style={{
+                    position: 'absolute',
+                    top: idx * LYRIC_LINE_HEIGHT,
+                    left: 0,
+                    right: 0,
+                    height: LYRIC_LINE_HEIGHT,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'center center',
+                    opacity,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: isCenter ? 44 : 32,
+                      fontWeight: isCenter ? 700 : 400,
+                      color: isCenter ? '#FFFFFF' : colors.muted,
+                      letterSpacing: isCenter ? 1.4 : 1.1,
+                      lineHeight: 1.25,
+                      padding: '0 40px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      textShadow: isCenter
+                        ? '0 0 25px rgba(255, 255, 255, 0.5), 0 2px 8px rgba(0,0,0,0.8)'
+                        : 'none',
+                    }}
+                  >
+                    {line.text}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* ===== LAYER 8: BOTTOM PROGRESS DOCK ===== */}
       <div
         style={{
           position: 'absolute',
-          bottom: 72,
+          bottom: 80,
           left: 72,
           right: 72,
-          zIndex: 40,
+          zIndex: 30,
         }}
       >
-        {/* Sleek Oceanic Progress Track */}
+        {/* Liquid-Metal Progress Track */}
         <div
           style={{
             position: 'relative',
             width: '100%',
-            height: 6,
-            borderRadius: 3,
-            backgroundColor: 'rgba(255, 255, 255, 0.16)',
+            height: 7,
+            borderRadius: 4,
+            backgroundColor: 'rgba(255, 255, 255, 0.12)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             overflow: 'hidden',
           }}
         >
@@ -729,28 +590,30 @@ export const LiquidWaveTemplate: React.FC<TemplateRenderProps<LiquidWaveConfig>>
             style={{
               width: `${progressRatio * 100}%`,
               height: '100%',
-              background: `linear-gradient(90deg, ${colors.accent1}, ${colors.accent2}, ${colors.accent3})`,
-              boxShadow: `0 0 12px ${colors.accent1}`,
+              background:
+                'linear-gradient(90deg, #606068 0%, #D0D0D8 50%, #FFFFFF 100%)',
+              boxShadow: '0 0 14px rgba(255, 255, 255, 0.7)',
             }}
           />
         </div>
 
-        {/* Time and Creator Subtitle */}
+        {/* Timestamps & Brand */}
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginTop: 14,
-            fontSize: 22,
+            marginTop: 18,
+            fontSize: 20,
             fontWeight: 500,
-            fontFamily: '"Fira Code", monospace',
-            color: 'rgba(255, 255, 255, 0.6)',
+            fontFamily: '"Inter", monospace',
+            color: colors.muted,
+            letterSpacing: 1.5,
           }}
         >
           <span>{formatTime(nowMs)}</span>
-          <span style={{ fontFamily: 'inherit', letterSpacing: 2, opacity: 0.7 }}>
-            {data.creatorName ?? 'OCEAN ECHO'}
+          <span style={{ letterSpacing: 3, fontSize: 16, opacity: 0.8, textTransform: 'uppercase' }}>
+            {data.creatorName ?? 'SINGVID · FLUID WAVE'}
           </span>
           <span>{formatTime(totalDurationMs)}</span>
         </div>

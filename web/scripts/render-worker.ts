@@ -72,6 +72,7 @@ async function main() {
     console.log('Bundling Remotion project...');
     const bundlePath = await bundle({
       entryPoint: path.resolve(__dirname, '../remotion/index.ts'),
+      publicDir: path.resolve(__dirname, '../public'),
     });
 
     // Select composition
