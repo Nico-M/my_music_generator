@@ -96,6 +96,9 @@ async function main() {
       codec: 'h264',
       outputLocation: outputPath,
       inputProps: renderInput,
+      chromiumOptions: {
+        gl: 'angle',
+      },
     });
 
     // Mark job as done — store logical path

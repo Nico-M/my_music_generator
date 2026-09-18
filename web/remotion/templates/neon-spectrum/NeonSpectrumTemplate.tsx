@@ -1,13 +1,15 @@
 import React, { useMemo } from 'react';
-import { useCurrentFrame, useVideoConfig, interpolate, Easing } from 'remotion';
+import { useCurrentFrame, useVideoConfig, interpolate, Easing, spring } from 'remotion';
 import type { TemplateRenderProps } from '../types';
 import type { NeonSpectrumConfig, WaveThemeDef } from './config';
 import { getThemeColors } from './config';
 import { getActiveLineState } from '../shared/timing';
+import { SoftAurora } from '../../shared/fx/SoftAurora';
 
 const BAR_GAP = 8;
 const LYRIC_LINE_HEIGHT = 86;
 const LYRIC_VIEWPORT_H = 340;
+const clampOpts = { extrapolateLeft: 'clamp' as const, extrapolateRight: 'clamp' as const };
 
 // Symmetrical frequency bar heights (fallback when visualizerStyle === 'bars')
 function getSpectrumAmplitudes(frame: number, barCount: number, energy: number): number[] {
@@ -53,178 +55,6 @@ function formatTime(ms: number): string {
 }
 
 // --------------------------------------------------------------------------
-// Neon Oscilloscope Waveform Mathematical Model
-// --------------------------------------------------------------------------
-interface PeakDef {
-  center: number;
-  width: number;
-  amp: number;
-  speed: number;
-  pulseSpeed: number;
-  phase: number;
-}
-
-interface WaveConfig {
-  name: string;
-  color: string;
-  glowColor: string;
-  peaks: PeakDef[];
-  rippleFreq: number;
-  rippleSpeed: number;
-  rippleAmp: number;
-}
-
-function getNeonWaveDefinitions(themeWaves: WaveThemeDef[]): WaveConfig[] {
-  return [
-    // Wave 0: Cyan (The Left Tall Bass Peak & Mid-Right Dome)
-    {
-      name: themeWaves[0]?.name ?? 'cyan',
-      color: themeWaves[0]?.color ?? '#00F5FF',
-      glowColor: themeWaves[0]?.glow ?? '#00D2FF',
-      peaks: [
-        { center: 0.19, width: 0.075, amp: 280, speed: 0.015, pulseSpeed: 0.045, phase: 0 },
-        { center: 0.65, width: 0.13, amp: 145, speed: 0.012, pulseSpeed: 0.035, phase: 2.1 },
-      ],
-      rippleFreq: 1.8,
-      rippleSpeed: 0.022,
-      rippleAmp: 18,
-    },
-    // Wave 1: Magenta (Center-Left Peak, Right Mid, Edge Flares)
-    {
-      name: themeWaves[2]?.name ?? 'magenta',
-      color: themeWaves[2]?.color ?? '#FF007A',
-      glowColor: themeWaves[2]?.glow ?? '#FF1493',
-      peaks: [
-        { center: -0.01, width: 0.09, amp: 220, speed: 0, pulseSpeed: 0.03, phase: 1.0 },
-        { center: 0.42, width: 0.07, amp: 200, speed: 0.018, pulseSpeed: 0.048, phase: 3.4 },
-        { center: 0.72, width: 0.08, amp: 95, speed: 0.014, pulseSpeed: 0.038, phase: 4.8 },
-        { center: 1.01, width: 0.09, amp: 240, speed: 0, pulseSpeed: 0.03, phase: 2.2 },
-      ],
-      rippleFreq: 2.6,
-      rippleSpeed: 0.03,
-      rippleAmp: 16,
-    },
-    // Wave 2: Purple / Violet (Harmonic Vibrations & Center Crests)
-    {
-      name: themeWaves[1]?.name ?? 'purple',
-      color: themeWaves[1]?.color ?? '#BD00FF',
-      glowColor: themeWaves[1]?.glow ?? '#9D00FF',
-      peaks: [
-        { center: 0.32, width: 0.065, amp: 115, speed: 0.02, pulseSpeed: 0.05, phase: 1.7 },
-        { center: 0.54, width: 0.085, amp: 165, speed: 0.016, pulseSpeed: 0.042, phase: 0.8 },
-        { center: 0.81, width: 0.07, amp: 110, speed: 0.022, pulseSpeed: 0.045, phase: 5.2 },
-      ],
-      rippleFreq: 3.4,
-      rippleSpeed: 0.036,
-      rippleAmp: 22,
-    },
-    // Wave 3: Warm Orange / Gold (Ground Surface Ripple & Right Peak)
-    {
-      name: themeWaves[3]?.name ?? 'orange',
-      color: themeWaves[3]?.color ?? '#FF9900',
-      glowColor: themeWaves[3]?.glow ?? '#FF6600',
-      peaks: [
-        { center: 0.88, width: 0.068, amp: 130, speed: 0.012, pulseSpeed: 0.038, phase: 4.1 },
-        { center: 0.12, width: 0.14, amp: 35, speed: 0.01, pulseSpeed: 0.025, phase: 1.5 },
-      ],
-      rippleFreq: 1.5,
-      rippleSpeed: 0.018,
-      rippleAmp: 26,
-    },
-  ];
-}
-
-interface WaveRenderData {
-  name: string;
-  color: string;
-  glowColor: string;
-  pathD: string;
-  reflectD: string;
-  splashPools: Array<{ x: number; amp: number }>;
-}
-
-function computeWaveRenderData(
-  waves: WaveConfig[],
-  frame: number,
-  vocalEnergy: number,
-  width = 1080,
-  samples = 120,
-  baselineY = 360
-): WaveRenderData[] {
-  return waves.map((wave) => {
-    const points: Array<{ x: number; y: number; reflectY: number }> = [];
-    const splashPools: Array<{ x: number; amp: number }> = [];
-
-    // Identify dynamic peak centers for floor splash light pools (100% continuous reverse-repeat breathing)
-    for (const p of wave.peaks) {
-      const dynamicCenter = p.center + Math.sin(frame * p.speed + p.phase) * 0.016;
-      const pulseWave = Math.sin(frame * p.pulseSpeed + p.phase);
-      const secondaryHarmonic = Math.cos(frame * (p.pulseSpeed * 0.55) + p.phase * 1.3) * 0.35;
-      const baseFactor = 0.82 + (pulseWave + secondaryHarmonic) * 0.16;
-      const dynamicAmp = p.amp * (baseFactor + vocalEnergy * 0.18);
-
-      if (dynamicCenter >= 0.03 && dynamicCenter <= 0.97 && dynamicAmp > 65) {
-        splashPools.push({
-          x: dynamicCenter * width,
-          amp: dynamicAmp,
-        });
-      }
-    }
-
-    for (let i = 0; i <= samples; i++) {
-      const u = i / samples;
-      const x = u * width;
-
-      let elevation = 0;
-
-      // 1. Gaussian pulses for sharp, continuous, organic audio peaks
-      for (const p of wave.peaks) {
-        const dynamicCenter = p.center + Math.sin(frame * p.speed + p.phase) * 0.016;
-        const pulseWave = Math.sin(frame * p.pulseSpeed + p.phase);
-        const secondaryHarmonic = Math.cos(frame * (p.pulseSpeed * 0.55) + p.phase * 1.3) * 0.35;
-        const baseFactor = 0.82 + (pulseWave + secondaryHarmonic) * 0.16;
-        const dynamicAmp = p.amp * (baseFactor + vocalEnergy * 0.18);
-        const dist = (u - dynamicCenter) / p.width;
-        elevation += dynamicAmp * Math.exp(-0.5 * dist * dist);
-      }
-
-      // 2. Continuous harmonic standing wave resonance along baseline (symmetric reverse repeat, 0 jumping breaks)
-      const forwardArg = u * Math.PI * wave.rippleFreq - frame * wave.rippleSpeed;
-      const backwardArg = u * Math.PI * wave.rippleFreq + frame * (wave.rippleSpeed * 0.75);
-      const waveInterference = (Math.sin(forwardArg) + Math.cos(backwardArg)) * 0.5;
-      const rectified = Math.max(0, waveInterference);
-      const dynamicRippleAmp =
-        wave.rippleAmp * (0.82 + Math.sin(frame * 0.028 + wave.rippleFreq) * 0.18 + vocalEnergy * 0.16);
-      elevation += Math.pow(rectified, 2) * dynamicRippleAmp;
-
-      const clampedElevation = Math.max(0, elevation);
-      const y = baselineY - clampedElevation;
-      // Mirror reflection with 0.56 vertical perspective compression
-      const reflectY = baselineY + clampedElevation * 0.56;
-
-      points.push({ x, y, reflectY });
-    }
-
-    let pathD = `M ${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
-    let reflectD = `M ${points[0].x.toFixed(1)},${points[0].reflectY.toFixed(1)}`;
-
-    for (let i = 1; i < points.length; i++) {
-      pathD += ` L ${points[i].x.toFixed(1)},${points[i].y.toFixed(1)}`;
-      reflectD += ` L ${points[i].x.toFixed(1)},${points[i].reflectY.toFixed(1)}`;
-    }
-
-    return {
-      name: wave.name,
-      color: wave.color,
-      glowColor: wave.glowColor,
-      pathD,
-      reflectD,
-      splashPools,
-    };
-  });
-}
-
-// --------------------------------------------------------------------------
 // NeonSpectrumTemplate Component
 // --------------------------------------------------------------------------
 export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConfig>> = ({
@@ -254,8 +84,8 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
   const totalDurationMs = Math.max(data.durationMs || 0, 1000);
   const progressRatio = Math.min(1, Math.max(0, nowMs / totalDurationMs));
 
-  // Subtle pulsing breathing scale for the cover lightbox
-  const coverPulse = 1 + Math.sin(frame * 0.04) * 0.012;
+  // Audio-reactive bass thump and breathing pulse for the cover lightbox
+  const coverPulse = 1 + Math.sin(frame * 0.035) * 0.012 + vocalEnergy * 0.036;
 
   // ------------------------------------------------------------------------
   // Smooth Kinetic Scrolling Lyrics Logic (Deterministic Math, 0 Jitter)
@@ -334,11 +164,9 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
 
   const CENTER_Y = (LYRIC_VIEWPORT_H - LYRIC_LINE_HEIGHT) / 2;
 
-  // Compute neon wave data
-  const isWaveMode = config.visualizerStyle !== 'bars';
-  const waveDefs = getNeonWaveDefinitions(colors.waves);
-  const waveData = computeWaveRenderData(waveDefs, frame, vocalEnergy, 1080, 120, 360);
-  const spectrumBars = !isWaveMode ? getSpectrumAmplitudes(frame, config.barCount, vocalEnergy) : [];
+  // Visualizer style configuration
+  const isBarsMode = config.visualizerStyle === 'bars';
+  const spectrumBars = isBarsMode ? getSpectrumAmplitudes(frame, config.barCount, vocalEnergy) : [];
 
   return (
     <div
@@ -474,7 +302,7 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
         </div>
       </div>
 
-      {/* ===== CENTERPIECE: BORDERLESS COVER ARTWORK ===== */}
+      {/* ===== CENTERPIECE: TACTICAL HUD FLOATING COVER ARTWORK ===== */}
       <div
         style={{
           position: 'absolute',
@@ -487,74 +315,112 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
           zIndex: 30,
         }}
       >
-        {/* Cover Art Box (100% Border-Free Pure Floating Artwork) */}
+        {/* Cover Art Box with Tactical HUD Corner Brackets */}
         <div
           style={{
             position: 'relative',
             width: 300,
             height: 300,
-            borderRadius: 24,
-            overflow: 'hidden',
-            backgroundColor: '#0A0713',
-            boxShadow: `0 0 ${Math.round(glowSize * 0.75)}px ${colors.primary}66, 0 20px 48px rgba(0,0,0,0.85)`,
             transform: `scale(${coverPulse})`,
             transformOrigin: 'center center',
           }}
         >
-          {data.coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={data.coverUrl}
-              alt={data.title}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
-          ) : (
-            // Cyber Vinyl / Pulse Fallback Graphic
-            <div
-              style={{
-                width: '100%',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: `radial-gradient(circle at center, ${colors.primary}22 0%, #080512 80%)`,
-                position: 'relative',
-              }}
-            >
-              {[110, 180, 240].map((size, idx) => (
+          {/* Tactical Cyber Reticles at 4 corners */}
+          {[-1, 1].map((xDir) =>
+            [-1, 1].map((yDir) => {
+              const spread = vocalEnergy * 6;
+              return (
                 <div
-                  key={idx}
+                  key={`bracket-${xDir}-${yDir}`}
                   style={{
                     position: 'absolute',
-                    width: size,
-                    height: size,
-                    borderRadius: '50%',
-                    border: `1.5px dashed ${idx === 1 ? colors.secondary : colors.primary}44`,
-                    transform: `rotate(${frame * (idx % 2 === 0 ? 0.3 : -0.2)}deg)`,
+                    top: yDir === -1 ? -12 - spread : undefined,
+                    bottom: yDir === 1 ? -12 - spread : undefined,
+                    left: xDir === -1 ? -12 - spread : undefined,
+                    right: xDir === 1 ? -12 - spread : undefined,
+                    width: 22,
+                    height: 22,
+                    borderTop: yDir === -1 ? `2.5px solid ${colors.primary}` : 'none',
+                    borderBottom: yDir === 1 ? `2.5px solid ${colors.primary}` : 'none',
+                    borderLeft: xDir === -1 ? `2.5px solid ${colors.primary}` : 'none',
+                    borderRight: xDir === 1 ? `2.5px solid ${colors.primary}` : 'none',
+                    boxShadow: `0 0 10px ${colors.primary}`,
+                    pointerEvents: 'none',
+                    zIndex: 32,
+                    opacity: 0.85,
                   }}
                 />
-              ))}
+              );
+            })
+          )}
+
+          {/* Border-Free Artwork */}
+          <div
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              borderRadius: 24,
+              overflow: 'hidden',
+              backgroundColor: '#0A0713',
+              boxShadow: `0 0 ${Math.round(glowSize * 0.75 + vocalEnergy * 16)}px ${colors.primary}77, 0 20px 48px rgba(0,0,0,0.85)`,
+            }}
+          >
+            {data.coverUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={data.coverUrl}
+                alt={data.title}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  display: 'block',
+                }}
+              />
+            ) : (
+              // Cyber Vinyl / Pulse Fallback Graphic
               <div
                 style={{
-                  width: 68,
-                  height: 68,
-                  borderRadius: '50%',
-                  background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                  width: '100%',
+                  height: '100%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: `0 0 20px ${colors.primary}`,
+                  background: `radial-gradient(circle at center, ${colors.primary}22 0%, #080512 80%)`,
+                  position: 'relative',
                 }}
               >
-                <span style={{ fontSize: 30 }}>♫</span>
+                {[110, 180, 240].map((size, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      position: 'absolute',
+                      width: size,
+                      height: size,
+                      borderRadius: '50%',
+                      border: `1.5px dashed ${idx === 1 ? colors.secondary : colors.primary}44`,
+                      transform: `rotate(${frame * (idx % 2 === 0 ? 0.3 : -0.2)}deg)`,
+                    }}
+                  />
+                ))}
+                <div
+                  style={{
+                    width: 68,
+                    height: 68,
+                    borderRadius: '50%',
+                    background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    boxShadow: `0 0 20px ${colors.primary}`,
+                  }}
+                >
+                  <span style={{ fontSize: 30 }}>♫</span>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Song Title & Singer */}
@@ -588,14 +454,62 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
               {data.singer}
             </p>
           )}
+
+          {/* Tactical Cyber Deck Status Line */}
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 14,
+              marginTop: 16,
+              padding: '6px 20px',
+              borderRadius: 20,
+              background: 'rgba(14, 9, 26, 0.75)',
+              border: `1px solid ${colors.primary}38`,
+              boxShadow: `0 0 18px ${colors.primary}20, inset 0 1px 0 rgba(255,255,255,0.1)`,
+              fontSize: 15,
+              fontFamily: '"Fira Code", monospace, sans-serif',
+              letterSpacing: 2,
+              color: 'rgba(255, 255, 255, 0.75)',
+            }}
+          >
+            <span style={{ color: colors.primary, fontWeight: 700, fontSize: 13 }}>FREQ-01</span>
+            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3.5, height: 16 }}>
+              {[0.4, 0.85, 0.55, 0.95, 0.65, 0.75, 0.35].map((barH, bIdx) => {
+                const dynH = Math.max(
+                  3,
+                  Math.min(
+                    16,
+                    (barH + Math.sin(frame * 0.18 + bIdx * 0.9) * 0.35 + vocalEnergy * 0.4) * 16
+                  )
+                );
+                const barCol = bIdx % 2 === 0 ? colors.primary : colors.secondary;
+                return (
+                  <div
+                    key={bIdx}
+                    style={{
+                      width: 3.5,
+                      height: dynH,
+                      borderRadius: 1.5,
+                      backgroundColor: barCol,
+                      boxShadow: `0 0 6px ${barCol}`,
+                    }}
+                  />
+                );
+              })}
+            </div>
+            <span style={{ color: colors.secondary, fontWeight: 600, fontSize: 13 }}>
+              {`${(124 + Math.sin(frame * 0.02) * 2).toFixed(0)} BPM`}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ===== MIDDLE: KINETIC SMOOTH SLIDING LYRICS STREAM ===== */}
+      {/* ===== MIDDLE: KINETIC SMOOTH SLIDING LYRICS STREAM (FRAME-SMITH UPGRADE) ===== */}
       <div
         style={{
           position: 'absolute',
-          top: 565,
+          top: 600,
           left: 64,
           right: 64,
           height: LYRIC_VIEWPORT_H,
@@ -621,15 +535,18 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
             const distPx = Math.abs(lineCenterY - lyricScrollY);
             const normDist = distPx / LYRIC_LINE_HEIGHT;
 
-            const opacity = interpolate(normDist, [0, 0.85, 1.8], [1, 0.52, 0.1], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
-            const scale = interpolate(normDist, [0, 1.2], [1.06, 0.93], {
-              extrapolateLeft: 'clamp',
-              extrapolateRight: 'clamp',
-            });
+            // Mount-Gating: skip rendering lines outside active viewport
+            if (normDist > 2.6) return null;
+
             const isCenter = normDist < 0.45;
+            const heroPop = interpolate(normDist, [0, 0.45], [1, 0], clampOpts);
+            const textRiseY = isCenter ? (1 - heroPop) * 12 : 0;
+            const scale = isCenter
+              ? interpolate(heroPop, [0, 1], [1.02, 1.08], clampOpts)
+              : interpolate(normDist, [0.45, 1.5], [0.95, 0.88], clampOpts);
+            const opacity = isCenter
+              ? 1
+              : interpolate(normDist, [0.45, 1.2, 2.2], [0.5, 0.28, 0.05], clampOpts);
 
             return (
               <div
@@ -641,6 +558,7 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
                   right: 0,
                   height: LYRIC_LINE_HEIGHT,
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
                   textAlign: 'center',
@@ -649,201 +567,133 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
                   opacity,
                 }}
               >
-                <span
+                {/* Line Container with Flex Reticles */}
+                <div
                   style={{
-                    fontSize: isCenter ? 48 : 34,
-                    fontWeight: isCenter ? 800 : 500,
-                    color: isCenter ? '#FFFFFF' : 'rgba(235, 230, 250, 0.7)',
-                    letterSpacing: isCenter ? 1.5 : 1.2,
-                    lineHeight: 1.2,
-                    textShadow: isCenter
-                      ? `0 0 16px rgba(255,255,255,0.9), 0 0 40px ${colors.primary}ee, 0 0 70px ${colors.primary}77`
-                      : `0 0 18px ${colors.secondary}44`,
-                    padding: '0 32px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    padding: '4px 16px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 12,
+                    position: 'relative',
                   }}
                 >
-                  {line.text}
-                </span>
+                  {/* Left Cyber Reticle [ */}
+                  {isCenter && (
+                    <span
+                      style={{
+                        color: colors.primary,
+                        fontFamily: '"Fira Code", monospace',
+                        fontSize: 34,
+                        fontWeight: 700,
+                        opacity: heroPop * 0.92,
+                        textShadow: `0 0 12px ${colors.primary}`,
+                        transform: `translateX(${(1 - heroPop) * -12}px)`,
+                        userSelect: 'none',
+                      }}
+                    >
+                      [
+                    </span>
+                  )}
+
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      transform: `translateY(${textRiseY}px)`,
+                      fontSize: isCenter ? 48 : 34,
+                      fontWeight: isCenter ? 800 : 500,
+                      color: isCenter ? '#FFFFFF' : 'rgba(225, 220, 242, 0.7)',
+                      letterSpacing: isCenter ? 2 : 1.2,
+                      lineHeight: 1.2,
+                      textShadow: isCenter
+                        ? `0 0 16px rgba(255,255,255,0.95), 0 0 35px ${colors.primary}ee, 0 0 ${Math.round(55 + vocalEnergy * 25)}px ${colors.primary}77`
+                        : `0 0 12px ${colors.secondary}22`,
+                      padding: isCenter ? '0 12px' : '0 16px',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      maxWidth: 900,
+                    }}
+                  >
+                    {line.text}
+                  </span>
+
+                  {/* Right Cyber Reticle ] */}
+                  {isCenter && (
+                    <span
+                      style={{
+                        color: colors.primary,
+                        fontFamily: '"Fira Code", monospace',
+                        fontSize: 34,
+                        fontWeight: 700,
+                        opacity: heroPop * 0.92,
+                        textShadow: `0 0 12px ${colors.primary}`,
+                        transform: `translateX(${(1 - heroPop) * 12}px)`,
+                        userSelect: 'none',
+                      }}
+                    >
+                      ]
+                    </span>
+                  )}
+                </div>
+
+                {/* Active Line Animated Neon Laser Underline */}
+                {isCenter && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      bottom: 4,
+                      width: '60%',
+                      maxWidth: 440,
+                      height: 2.5,
+                      borderRadius: 2,
+                      background: `linear-gradient(90deg, transparent 0%, ${colors.primary} 30%, ${colors.secondary} 70%, transparent 100%)`,
+                      boxShadow: `0 0 14px ${colors.primary}, 0 0 28px ${colors.secondary}`,
+                      transform: `scaleX(${heroPop})`,
+                      opacity: heroPop,
+                      transformOrigin: 'center center',
+                    }}
+                  />
+                )}
               </div>
             );
           })}
         </div>
       </div>
 
-      {/* ===== LOWER HALF: THE NEON OSCILLOSCOPE WAVE STAGE ===== */}
-      {isWaveMode ? (
+      {/* ===== ATMOSPHERIC BACKGROUND: SOFT AURORA (REACT BITS SHADER) ===== */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 10,
+          pointerEvents: 'none',
+          overflow: 'hidden',
+        }}
+      >
+        <SoftAurora
+          width={1080}
+          height={1920}
+          color1={colors.primary}
+          color2={colors.secondary}
+          speed={0.4}
+          scale={1.45}
+          brightness={1.35}
+          bandHeight={0.34}
+          vocalEnergy={vocalEnergy}
+          opacity={0.92}
+        />
+      </div>
+
+      {/* Optional: LED Equalizer Bars if bars mode explicitly selected */}
+      {isBarsMode && (
         <div
           style={{
             position: 'absolute',
-            top: 920,
-            left: 0,
-            width: 1080,
-            height: 520,
-            zIndex: 30,
-            pointerEvents: 'none',
-          }}
-        >
-          <svg
-            viewBox="0 0 1080 520"
-            style={{
-              width: 1080,
-              height: 520,
-              display: 'block',
-              overflow: 'visible',
-            }}
-          >
-            <defs>
-              {/* Floor Surface Depth Gradient */}
-              <linearGradient id="neon-floor-gradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#0B0616" stopOpacity="0.75" />
-                <stop offset="35%" stopColor="#07050E" stopOpacity="0.9" />
-                <stop offset="100%" stopColor="#030206" stopOpacity="1" />
-              </linearGradient>
-
-              {/* Floor Reflection Mask (downward perspective fade) */}
-              <linearGradient id="floor-fade-mask" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.8" />
-                <stop offset="45%" stopColor="#FFFFFF" stopOpacity="0.38" />
-                <stop offset="85%" stopColor="#FFFFFF" stopOpacity="0.05" />
-                <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-              </linearGradient>
-              <mask id="floor-reflection-mask">
-                <rect x="0" y="360" width="1080" height="160" fill="url(#floor-fade-mask)" />
-              </mask>
-
-              {/* Blur filter for soft ground splash */}
-              <filter id="splash-glow-blur" x="-50%" y="-100%" width="200%" height="300%">
-                <feGaussianBlur stdDeviation="14 6" />
-              </filter>
-            </defs>
-
-            {/* 1. Reflective Floor Plane */}
-            <rect x="0" y="360" width="1080" height="160" fill="url(#neon-floor-gradient)" />
-
-            {/* 2. Contact Splash Light Pools (Where waves touch or cast onto floor) */}
-            {waveData.map((wave) =>
-              wave.splashPools.map((pool, pIdx) => {
-                const rx = Math.min(95, Math.max(45, pool.amp * 0.36));
-                const ry = Math.min(22, Math.max(8, pool.amp * 0.08));
-                return (
-                  <ellipse
-                    key={`${wave.name}-splash-${pIdx}`}
-                    cx={pool.x}
-                    cy={366}
-                    rx={rx}
-                    ry={ry}
-                    fill={wave.color}
-                    opacity={0.65 * glowMultiplier}
-                    filter="url(#splash-glow-blur)"
-                  />
-                );
-              })
-            )}
-
-            {/* 3. Inverted Floor Waves (Masked with downward perspective fade) */}
-            <g mask="url(#floor-reflection-mask)">
-              {waveData.map((wave) => (
-                <g key={`reflect-${wave.name}`}>
-                  {/* Soft reflection bloom */}
-                  <path
-                    d={wave.reflectD}
-                    fill="none"
-                    stroke={wave.color}
-                    strokeWidth={12}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    opacity={0.25 * glowMultiplier}
-                    style={{ filter: 'blur(8px)' }}
-                  />
-                  {/* Reflected neon line */}
-                  <path
-                    d={wave.reflectD}
-                    fill="none"
-                    stroke={wave.color}
-                    strokeWidth={4}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    opacity={0.45 * glowMultiplier}
-                    style={{ filter: 'blur(3px)' }}
-                  />
-                  {/* Reflected white core */}
-                  <path
-                    d={wave.reflectD}
-                    fill="none"
-                    stroke="#FFFFFF"
-                    strokeWidth={1.4}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    opacity={0.35}
-                    style={{ filter: 'blur(1.5px)' }}
-                  />
-                </g>
-              ))}
-            </g>
-
-            {/* 4. The Main Glowing Neon Waves (Rising above baseline) */}
-            {waveData.map((wave) => (
-              <g key={`wave-${wave.name}`}>
-                {/* Layer A: Atmospheric Ambient Bloom */}
-                <path
-                  d={wave.pathD}
-                  fill="none"
-                  stroke={wave.color}
-                  strokeWidth={18}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={0.24 * glowMultiplier}
-                  style={{ filter: 'blur(16px)' }}
-                />
-                {/* Layer B: Mid-Range Neon Glow */}
-                <path
-                  d={wave.pathD}
-                  fill="none"
-                  stroke={wave.color}
-                  strokeWidth={8}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={0.7 * glowMultiplier}
-                  style={{ filter: 'blur(5px)' }}
-                />
-                {/* Layer C: Sharp Neon Tube Outer Wall */}
-                <path
-                  d={wave.pathD}
-                  fill="none"
-                  stroke={wave.color}
-                  strokeWidth={4.5}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={0.95}
-                  style={{ filter: `drop-shadow(0 0 6px ${wave.color})` }}
-                />
-                {/* Layer D: White-Hot Filament Core */}
-                <path
-                  d={wave.pathD}
-                  fill="none"
-                  stroke="#FFFFFF"
-                  strokeWidth={1.8}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  opacity={0.96}
-                  style={{ filter: 'drop-shadow(0 0 2px #FFFFFF)' }}
-                />
-              </g>
-            ))}
-          </svg>
-        </div>
-      ) : (
-        /* Fallback: LED Equalizer Bars */
-        <div
-          style={{
-            position: 'absolute',
-            top: 1060,
+            top: 1100,
             left: 64,
             right: 64,
-            height: 240,
+            height: 200,
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'center',
@@ -852,7 +702,7 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
           }}
         >
           {spectrumBars.map((amp, i) => {
-            const barHeight = Math.max(12, amp * 220);
+            const barHeight = Math.max(10, amp * 180);
             const isCenter = Math.abs(i - spectrumBars.length / 2) < 4;
             const barColor = isCenter
               ? colors.primary
@@ -869,7 +719,7 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
                   height: barHeight,
                   borderRadius: 6,
                   background: `linear-gradient(180deg, ${barColor} 0%, ${barColor}66 70%, transparent 100%)`,
-                  boxShadow: `0 0 ${Math.round(16 * glowMultiplier)}px ${barColor}cc`,
+                  boxShadow: `0 0 ${Math.round(14 * glowMultiplier)}px ${barColor}aa`,
                 }}
               />
             );
@@ -877,11 +727,11 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
         </div>
       )}
 
-      {/* ===== BOTTOM SECTION: PROGRESS BAR & METADATA ===== */}
+      {/* ===== BOTTOM SECTION: PROGRESS BAR & METADATA (SHORT SAFE ZONE) ===== */}
       <div
         style={{
           position: 'absolute',
-          bottom: 80,
+          bottom: 160,
           left: 64,
           right: 64,
           zIndex: 40,
@@ -896,6 +746,7 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
               borderRadius: 3,
               backgroundColor: 'rgba(255, 255, 255, 0.12)',
               overflow: 'hidden',
+              position: 'relative',
             }}
           >
             <div
@@ -908,20 +759,48 @@ export const NeonSpectrumTemplate: React.FC<TemplateRenderProps<NeonSpectrumConf
             />
           </div>
 
-          {/* Time Labels */}
+          {/* Audio-Reactive Glowing Progress Head Bead */}
+          <div
+            style={{
+              position: 'absolute',
+              top: -3,
+              left: `${progressRatio * 100}%`,
+              width: 12,
+              height: 12,
+              borderRadius: '50%',
+              backgroundColor: '#FFFFFF',
+              boxShadow: `0 0 10px ${colors.primary}, 0 0 20px ${colors.primary}`,
+              transform: `translateX(-50%) scale(${1 + vocalEnergy * 0.3})`,
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* Time Labels with Monospace Cyber Aesthetic */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
+              alignItems: 'center',
               marginTop: 14,
               fontSize: 22,
               fontWeight: 500,
               fontFamily: '"Fira Code", monospace',
-              color: 'rgba(255, 255, 255, 0.5)',
+              color: 'rgba(255, 255, 255, 0.55)',
             }}
           >
-            <span>{formatTime(nowMs).slice(0, 5)}</span>
-            <span>{data.creatorName ?? 'VocalBeat'}</span>
+            <span style={{ color: colors.primary, textShadow: `0 0 8px ${colors.primary}66` }}>
+              {formatTime(nowMs).slice(0, 5)}
+            </span>
+            <span
+              style={{
+                fontSize: 16,
+                letterSpacing: 2,
+                color: 'rgba(255, 255, 255, 0.4)',
+                textTransform: 'uppercase',
+              }}
+            >
+              {data.creatorName ?? 'VocalBeat'}
+            </span>
             <span>{formatTime(totalDurationMs).slice(0, 5)}</span>
           </div>
         </div>
