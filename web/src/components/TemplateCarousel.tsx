@@ -91,10 +91,12 @@ export const TEMPLATES: TemplateItem[] = [
 
 interface TemplateCarouselProps {
   onSelectTemplate?: (templateId: string) => void;
+  theme?: 'light' | 'dark';
 }
 
-export default function TemplateCarousel({ onSelectTemplate }: TemplateCarouselProps) {
+export default function TemplateCarousel({ onSelectTemplate, theme = 'dark' }: TemplateCarouselProps) {
   const { locale } = useI18n();
+  const isDark = theme === 'dark';
   const [activeIndex, setActiveIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const touchStartX = useRef<number | null>(null);
@@ -240,10 +242,14 @@ export default function TemplateCarousel({ onSelectTemplate }: TemplateCarouselP
                 transition:
                   'transform 600ms cubic-bezier(0.25, 1, 0.5, 1), opacity 600ms ease, filter 600ms ease, box-shadow 600ms ease',
               }}
-              className={`absolute top-1/2 left-1/2 w-[270px] sm:w-[320px] md:w-[350px] h-[390px] sm:h-[430px] md:h-[460px] rounded-2xl overflow-hidden bg-white border flex flex-col group ${
-                isCenter
-                  ? 'border-indigo-200/80 ring-2 ring-indigo-500/15'
-                  : 'border-slate-200/80 hover:opacity-75 hover:brightness-100'
+              className={`absolute top-1/2 left-1/2 w-[270px] sm:w-[320px] md:w-[350px] h-[390px] sm:h-[430px] md:h-[460px] rounded-2xl overflow-hidden border flex flex-col group ${
+                isDark
+                  ? isCenter
+                    ? 'bg-slate-900/90 border-indigo-500/50 ring-2 ring-indigo-500/30'
+                    : 'bg-slate-950/80 border-white/10 hover:opacity-85 hover:brightness-100'
+                  : isCenter
+                  ? 'bg-white border-indigo-200/80 ring-2 ring-indigo-500/15'
+                  : 'bg-white border-slate-200/80 hover:opacity-75 hover:brightness-100'
               }`}
             >
               {/* Cover Image Container */}
@@ -268,20 +274,24 @@ export default function TemplateCarousel({ onSelectTemplate }: TemplateCarouselP
                 </div>
 
                 {/* Template ID badge */}
-                <div className="absolute top-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-mono font-medium bg-white/80 text-slate-800 backdrop-blur-md border border-white/40 shadow-xs">
+                <div className={`absolute top-3 left-3 px-2 py-0.5 rounded-md text-[10px] font-mono font-medium backdrop-blur-md border shadow-xs ${
+                  isDark ? 'bg-black/60 text-slate-200 border-white/20' : 'bg-white/80 text-slate-800 border-white/40'
+                }`}>
                   {tpl.id}
                 </div>
               </div>
 
               {/* Bottom Info Bar */}
-              <div className="p-3.5 sm:p-4 bg-white/95 backdrop-blur-sm border-t border-slate-100 flex items-center justify-between gap-3">
+              <div className={`p-3.5 sm:p-4 backdrop-blur-sm border-t flex items-center justify-between gap-3 ${
+                isDark ? 'bg-slate-950/90 border-white/10' : 'bg-white/95 border-slate-100'
+              }`}>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-slate-800 truncate">
+                    <h3 className={`text-sm font-bold truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>
                       {displayName}
                     </h3>
                   </div>
-                  <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
+                  <p className={`text-xs mt-0.5 line-clamp-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                     {displayDesc}
                   </p>
                 </div>
@@ -294,7 +304,7 @@ export default function TemplateCarousel({ onSelectTemplate }: TemplateCarouselP
                       e.stopPropagation();
                       onSelectTemplate(tpl.id);
                     }}
-                    className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 active:scale-95 transition-all shadow-xs flex items-center gap-1 cursor-pointer"
+                    className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all shadow-sm shadow-indigo-500/30 flex items-center gap-1 cursor-pointer"
                   >
                     <span>{locale === 'zh' ? '使用此模板' : 'Use Template'}</span>
                     <ChevronRight className="w-3 h-3 stroke-[3]" />
@@ -313,7 +323,11 @@ export default function TemplateCarousel({ onSelectTemplate }: TemplateCarouselP
             prevSlide();
           }}
           aria-label={locale === 'zh' ? '上一个模板' : 'Previous template'}
-          className="absolute left-1 sm:left-3 md:left-6 z-40 w-10 h-10 rounded-full bg-white/85 hover:bg-white text-slate-700 hover:text-indigo-600 shadow-lg border border-slate-200/60 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+          className={`absolute left-1 sm:left-3 md:left-6 z-40 w-10 h-10 rounded-full shadow-lg border backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer ${
+            isDark
+              ? 'bg-slate-900/80 hover:bg-slate-800 text-white hover:text-indigo-400 border-white/15'
+              : 'bg-white/85 hover:bg-white text-slate-700 hover:text-indigo-600 border-slate-200/60'
+          }`}
         >
           <ChevronLeft className="w-5 h-5 stroke-[2.5]" />
         </button>
@@ -326,7 +340,11 @@ export default function TemplateCarousel({ onSelectTemplate }: TemplateCarouselP
             nextSlide();
           }}
           aria-label={locale === 'zh' ? '下一个模板' : 'Next template'}
-          className="absolute right-1 sm:right-3 md:right-6 z-40 w-10 h-10 rounded-full bg-white/85 hover:bg-white text-slate-700 hover:text-indigo-600 shadow-lg border border-slate-200/60 backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer"
+          className={`absolute right-1 sm:right-3 md:right-6 z-40 w-10 h-10 rounded-full shadow-lg border backdrop-blur-md flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer ${
+            isDark
+              ? 'bg-slate-900/80 hover:bg-slate-800 text-white hover:text-indigo-400 border-white/15'
+              : 'bg-white/85 hover:bg-white text-slate-700 hover:text-indigo-600 border-slate-200/60'
+          }`}
         >
           <ChevronRight className="w-5 h-5 stroke-[2.5]" />
         </button>
@@ -346,7 +364,9 @@ export default function TemplateCarousel({ onSelectTemplate }: TemplateCarouselP
               }`}
               className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
                 isActive
-                  ? 'w-7 bg-indigo-600 shadow-xs'
+                  ? 'w-7 bg-indigo-500 shadow-sm shadow-indigo-500/50'
+                  : isDark
+                  ? 'w-2 bg-slate-700 hover:bg-slate-500'
                   : 'w-2 bg-slate-300 hover:bg-slate-400'
               }`}
             />

@@ -42,6 +42,22 @@ export function ChevronRight(props: IconProps) {
   );
 }
 
+export function ChevronDown(props: IconProps) {
+  return (
+    <StrokedIcon strokeWidth={48} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <polyline points="112 184 256 328 400 184" />
+    </StrokedIcon>
+  );
+}
+
+export function ChevronUp(props: IconProps) {
+  return (
+    <StrokedIcon strokeWidth={48} strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <polyline points="112 328 256 184 400 328" />
+    </StrokedIcon>
+  );
+}
+
 export function Plus(props: IconProps) {
   return (
     <StrokedIcon strokeWidth={32} strokeLinecap="round" strokeLinejoin="round" {...props}>
