@@ -8,6 +8,7 @@ import HeroVisual from '@/components/HeroVisual';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useI18n } from '@/components/LanguageProvider';
 import { Plus, Music2, Upload, LoaderCircle } from '@/components/icons/IonIcons';
+import TemplateCarousel, { TEMPLATES } from '@/components/TemplateCarousel';
 import { Agentation } from "agentation";
 
 interface ProjectSummary {
@@ -72,6 +73,7 @@ export default function Home() {
   const [creatorName, setCreatorName] = useState(DEFAULT_CREATOR_NAME);
   const [singer, setSinger] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(DEFAULT_TEMPLATE_ID);
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter();
 
@@ -124,7 +126,7 @@ export default function Home() {
           title: title.trim(),
           creatorName: creatorName.trim(),
           singer: singer.trim(),
-          templateId: DEFAULT_TEMPLATE_ID,
+          templateId: selectedTemplateId || DEFAULT_TEMPLATE_ID,
           templateConfig: {},
           audioPath,
           durationMs,
@@ -264,6 +266,23 @@ export default function Home() {
                       {t('create.audioFile')}
                     </label>
                     <input id="audio-file" type="file" accept="audio/*" className="file-input w-full" required />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="template-select" className="block text-sm font-medium mb-1.5" style={{ color: 'var(--color-text-muted)' }}>
+                      {t('create.template')}
+                    </label>
+                    <select
+                      id="template-select"
+                      value={selectedTemplateId}
+                      onChange={(e) => setSelectedTemplateId(e.target.value)}
+                      className="input-field w-full"
+                    >
+                      {TEMPLATES.map((tpl) => (
+                        <option key={tpl.id} value={tpl.id}>
+                          {tpl.name} ({tpl.nameZh} · {tpl.tagZh})
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
                 <div className="flex gap-3 pt-1">
@@ -442,167 +461,28 @@ export default function Home() {
           )}
         </section>
 
-        <section className="mt-8">
+        <section className="mt-12">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
-              {t('app.templates')}
-            </h2>
-            <span className="text-xs" style={{ color: 'var(--color-text-subtle)' }}>
-              7
+            <div>
+              <h2 className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                {t('app.templates')}
+              </h2>
+              <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-subtle)' }}>
+                7 款精心设计的歌词动效风格
+              </p>
+            </div>
+            <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60">
+              7 款风格
             </span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full">
-                <Image
-                  src="/assets/templates/output_example.png"
-                  alt={t('app.notesTemplateAlt')}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                  {t('app.notesTemplate')}
-                </h3>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-                  iPhone Notes style
-                </p>
-              </div>
-            </article>
 
-            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full">
-                <Image
-                  src="/assets/templates/output_example_2.png"
-                  alt={t('app.voiceMemoTemplateAlt')}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                  {t('app.voiceMemoTemplate')}
-                </h3>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-                  Voice Memo style
-                </p>
-              </div>
-            </article>
-
-            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full bg-gradient-to-br from-purple-900 via-indigo-900 to-cyan-900 flex items-center justify-center">
-                <div className="flex flex-col items-center gap-2 opacity-70">
-                  <div className="flex items-end gap-1 h-16">
-                    {[22, 36, 14, 44, 31, 52, 27, 41].map((height, i) => (
-                      <div key={i} className="w-2 bg-cyan-400 rounded-t" style={{ height: `${height}px`, opacity: 0.7 }} />
-                    ))}
-                  </div>
-                  <span className="text-cyan-300 text-2xl font-bold tracking-widest">NEON</span>
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                  Neon Spectrum
-                </h3>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-                  Nightclub stage with animated spectrum bars
-                </p>
-              </div>
-            </article>
-
-            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full bg-gradient-to-br from-slate-900 via-teal-900 to-emerald-900 flex items-center justify-center">
-                <div className="relative w-24 h-24">
-                  <div className="absolute inset-0 border-2 border-teal-400/50 rounded-full animate-pulse" />
-                  <div className="absolute inset-4 border border-emerald-400/30 rounded-full" />
-                  <div className="absolute inset-8 border border-cyan-400/20 rounded-full" />
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                  Liquid Wave
-                </h3>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-                  Dreamy ripples and ethereal floating lyrics
-                </p>
-              </div>
-            </article>
-
-            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full bg-gradient-to-br from-zinc-900 via-violet-900 to-indigo-900 flex items-center justify-center">
-                <div className="text-center">
-                  <p className="text-white/90 text-lg font-bold tracking-wide">L Y R I C</p>
-                  <p className="text-white/40 text-sm mt-1">P O S T E R</p>
-                  <div className="flex justify-center gap-1 mt-3">
-                    {[18, 11, 24, 16, 22, 9, 14, 20, 13, 17].map((height, i) => (
-                      <div key={i} className="w-0.5 bg-white/40 rounded" style={{ height: `${height}px` }} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                  Lyric Poster
-                </h3>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-                  Editorial poster with kinetic typography
-                </p>
-              </div>
-            </article>
-
-            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full bg-gradient-to-br from-slate-900 via-zinc-800 to-slate-950 flex items-center justify-center">
-                <div className="w-24 h-32 bg-slate-200 rounded-xl p-2 flex flex-col items-center justify-between shadow-md">
-                  <div className="w-full h-14 bg-slate-900 rounded-sm flex items-center justify-center text-[7px] text-sky-400 font-mono">
-                    NOW PLAYING
-                  </div>
-                  <div className="w-12 h-12 rounded-full bg-slate-300 border border-slate-400/60 flex items-center justify-center">
-                    <div className="w-4 h-4 rounded-full bg-slate-100 shadow-xs" />
-                  </div>
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                  iPod Classic
-                </h3>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-                  Retro click wheel with Now Playing LCD screen
-                </p>
-              </div>
-            </article>
-
-            <article className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--color-border)', background: 'var(--color-surface)' }}>
-              <div className="relative aspect-video w-full bg-gradient-to-br from-purple-950 via-slate-900 to-indigo-950 flex items-center justify-center p-4">
-                <div className="w-48 bg-white/20 backdrop-blur-md rounded-2xl border border-white/30 p-2.5 shadow-lg flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-6 rounded bg-purple-900/80 flex items-center justify-center text-[7px] text-white font-bold">music</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="h-1.5 bg-white/80 rounded w-3/4 mb-1" />
-                      <div className="h-1 bg-white/40 rounded w-1/2" />
-                    </div>
-                    <div className="w-3.5 h-3.5 rounded-full bg-blue-500" />
-                  </div>
-                  <div className="h-1 bg-white/30 rounded-full w-full relative">
-                    <div className="h-full bg-white rounded-full w-1/2" />
-                  </div>
-                  <div className="flex justify-center items-center gap-3 pt-0.5 text-white/90 text-[9px]">
-                    <span>◀◀</span>
-                    <span className="font-bold">❚❚</span>
-                    <span>▶▶</span>
-                  </div>
-                </div>
-              </div>
-              <div className="p-4">
-                <h3 className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-                  Music Widget
-                </h3>
-                <p className="text-xs mt-1" style={{ color: 'var(--color-text-subtle)' }}>
-                  iOS style mobile music widget with frosted glass
-                </p>
-              </div>
-            </article>
-          </div>
+          <TemplateCarousel
+            onSelectTemplate={(tplId) => {
+              setSelectedTemplateId(tplId);
+              setShowCreate(true);
+              window.scrollTo({ top: 260, behavior: 'smooth' });
+            }}
+          />
         </section>
       </main>
     </div>
