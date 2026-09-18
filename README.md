@@ -1,6 +1,6 @@
 # Singing Video Generator
 
-![站点截图](assets/Screenshot_singvid.jpeg)
+![站点截图](assets/Screenshot_singvid.jpg)
 
 ## 简介
 

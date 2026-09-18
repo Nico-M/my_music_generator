@@ -25,3 +25,6 @@ export type { ShuffleProps } from './Shuffle';
 export { default as ElectricBorder } from './ElectricBorder';
 export type { ElectricBorderProps } from './ElectricBorder';
 
+export { default as GooeyNav } from './GooeyNav';
+export type { GooeyNavProps, GooeyNavItem } from './GooeyNav';
+

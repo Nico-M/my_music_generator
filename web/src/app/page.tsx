@@ -24,6 +24,7 @@ import {
   DepthCarousel,
   type DepthCarouselItemObject,
   Shuffle,
+  GooeyNav,
 } from '@/components/react-bits';
 import { BentoFeatures } from '@/components/landing';
 import { Agentation } from 'agentation';
@@ -399,26 +400,20 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Desktop Navigation Tabs */}
-          <nav className="hidden md:flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10 backdrop-blur-md text-xs font-medium text-slate-400">
-            {SCREENS.map((s, idx) => {
-              const isActive = activeSlide === idx;
-              return (
-                <button
-                  key={s.id}
-                  onClick={() => goToSlide(idx)}
-                  className={`px-3.5 py-1 rounded-full transition-all duration-300 cursor-pointer flex items-center gap-1.5 ${
-                    isActive
-                      ? 'bg-indigo-600 text-white shadow-sm shadow-indigo-500/40'
-                      : 'hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span className="text-[10px] opacity-60 font-mono">{s.number}</span>
-                  <span>{isZh ? s.nameZh : s.nameEn}</span>
-                </button>
-              );
-            })}
-          </nav>
+          {/* Desktop Navigation Tabs with ReactBits GooeyNav */}
+          <div className="hidden md:block">
+            <GooeyNav
+              items={SCREENS.map((s) => ({
+                id: s.id,
+                number: s.number,
+                label: isZh ? s.nameZh : s.nameEn,
+              }))}
+              activeIndex={activeSlide}
+              onSelect={(idx) => goToSlide(idx)}
+              colors={['#6366f1', '#818cf8', '#a855f7', '#c084fc', '#38bdf8']}
+              particleCount={14}
+            />
+          </div>
 
           {/* Right Action: Language + Launch Button */}
           <div className="flex items-center gap-3">
