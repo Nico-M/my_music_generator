@@ -9,6 +9,7 @@ import LanguageToggle from '@/components/LanguageToggle';
 import { useI18n } from '@/components/LanguageProvider';
 import { Plus, Music2, Upload, LoaderCircle } from '@/components/icons/IonIcons';
 import TemplateCarousel, { TEMPLATES } from '@/components/TemplateCarousel';
+import { SoftAurora, BlurText, ShinyText, SpotlightCard } from '@/components/react-bits';
 import { Agentation } from "agentation";
 
 interface ProjectSummary {
@@ -64,7 +65,7 @@ function getCardPalette(id: string) {
 }
 
 export default function Home() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -177,18 +178,25 @@ export default function Home() {
 
       {/* ── Hero Section ── */}
       <section className="relative overflow-hidden border-b border-[var(--color-border)] pt-24 md:pt-28 pb-16 md:pb-24">
-        {/* Background artwork */}
-        <div
-          className="absolute inset-0 bg-cover bg-center opacity-40 pointer-events-none"
-          style={{
-            backgroundImage: "url('/images/hero-bg.jpg')",
-          }}
-        />
+        {/* React Bits SoftAurora WebGL background */}
+        <div className="absolute inset-0 pointer-events-none opacity-60">
+          <SoftAurora
+            speed={0.45}
+            scale={1.35}
+            brightness={0.85}
+            color1="#4648d4"
+            color2="#0ea5e9"
+            lightMode={true}
+            enableMouseInteraction={true}
+            className="w-full h-full"
+          />
+        </div>
+        {/* Gradient backdrop for legibility */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              'linear-gradient(180deg, rgba(250, 248, 255, 0.15) 0%, rgba(250, 248, 255, 0.45) 45%, rgba(250, 248, 255, 0.95) 100%)',
+              'linear-gradient(180deg, rgba(250, 248, 255, 0.25) 0%, rgba(250, 248, 255, 0.65) 50%, rgba(250, 248, 255, 0.98) 100%)',
           }}
         />
 
@@ -196,32 +204,94 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-center gap-10 md:gap-12">
             {/* Left: copy */}
             <div className="flex-1 text-center md:text-left">
+              {/* React Bits ShinyText pill badge */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/85 backdrop-blur-md border border-indigo-100/90 shadow-xs mb-5">
+                <span className="flex h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+                <ShinyText
+                  text={locale === 'zh' ? '✨ 专为社媒与音乐爱好者打造的动效引擎' : '✨ Kinetic Lyric Video Generator for Creators'}
+                  color="#4648d4"
+                  shineColor="#ec4899"
+                  speed={2.8}
+                  className="text-xs font-semibold"
+                />
+              </div>
+
+              {/* React Bits BlurText animated title */}
               <h2
-                className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight leading-[1.15] mb-4"
+                className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.18] mb-4 text-slate-900"
                 style={{ fontFamily: 'var(--font-heading)' }}
               >
-                <span style={{ color: 'var(--color-primary)' }}>{t('app.heroTitle1')}</span>
-                <br />
-                <span style={{ color: 'var(--color-text)' }}>{t('app.heroTitle2')}</span>
+                <BlurText
+                  text={t('app.heroTitle1')}
+                  delay={70}
+                  animateBy="words"
+                  direction="top"
+                  className="text-[var(--color-primary)] block font-extrabold"
+                />
+                <BlurText
+                  text={t('app.heroTitle2')}
+                  delay={70}
+                  animateBy="words"
+                  direction="bottom"
+                  className="text-slate-900 block font-extrabold mt-1"
+                />
               </h2>
-              <p className="text-sm md:text-base max-w-md mx-auto md:mx-0 mb-6" style={{ color: 'var(--color-text-muted)' }}>
+              <p className="text-sm md:text-base max-w-md mx-auto md:mx-0 mb-6 text-slate-600 leading-relaxed">
                 {t('app.heroDesc')}
               </p>
-              <button
-                onClick={() => {
-                  const btn = document.querySelector<HTMLButtonElement>('.btn-primary');
-                  if (btn) btn.click();
-                }}
-                className="btn-primary text-base px-7 py-3"
-              >
-                <Upload className="w-4 h-4" />
-                {t('app.startCreating')}
-              </button>
+
+              <div className="flex flex-wrap items-center gap-3 justify-center md:justify-start">
+                <button
+                  onClick={() => {
+                    setShowCreate(true);
+                    window.scrollTo({ top: 320, behavior: 'smooth' });
+                  }}
+                  className="btn-primary text-base px-7 py-3 shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                >
+                  <Upload className="w-4 h-4" />
+                  {t('app.startCreating')}
+                </button>
+              </div>
+
+              {/* Feature pills */}
+              <div className="flex flex-wrap items-center gap-4 mt-7 text-xs text-slate-500 justify-center md:justify-start">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-indigo-500" />
+                  <span className="font-medium">7 种视觉模板</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                  <span className="font-medium">9:16 社媒竖屏高清</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-rose-500" />
+                  <span className="font-medium">音画毫秒级对齐</span>
+                </div>
+              </div>
             </div>
 
-            {/* Right: HeroVisual */}
-            <div className="flex-1 w-full max-w-md md:max-w-none opacity-90 md:opacity-100">
-              <HeroVisual />
+            {/* Right: HeroVisual inside SpotlightCard */}
+            <div className="flex-1 w-full max-w-md md:max-w-none">
+              <SpotlightCard
+                className="rounded-3xl bg-white/80 backdrop-blur-xl border border-white/90 shadow-2xl shadow-indigo-500/10 p-5 md:p-6 transition-transform duration-500 hover:-translate-y-1"
+                spotlightColor="rgba(70, 72, 212, 0.16)"
+                spotlightSize={420}
+              >
+                <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-100 text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80" />
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80" />
+                    <span className="ml-2 font-mono text-[11px] text-slate-400 font-semibold tracking-wider">
+                      LIVE STUDIO PREVIEW
+                    </span>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 font-mono text-[10px] font-semibold">
+                    1080×1920 60FPS
+                  </span>
+                </div>
+                <HeroVisual />
+              </SpotlightCard>
             </div>
           </div>
         </div>
@@ -353,9 +423,11 @@ export default function Home() {
               {projects.map((p) => {
                 const palette = getCardPalette(p.id);
                 return (
-                  <div
+                  <SpotlightCard
                     key={p.id}
-                    className="group cursor-pointer rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-400/50 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                    className="group cursor-pointer rounded-2xl bg-white border border-slate-200/90 shadow-sm hover:shadow-xl hover:shadow-indigo-500/10 hover:border-indigo-400/50 hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden !p-0"
+                    spotlightColor="rgba(70, 72, 212, 0.12)"
+                    spotlightSize={340}
                     onClick={() => router.push(`/projects/${p.id}`)}
                   >
                     {/* 顶部流光封面与视听元素 */}
@@ -454,7 +526,7 @@ export default function Home() {
                         </span>
                       </div>
                     </div>
-                  </div>
+                  </SpotlightCard>
                 );
               })}
             </div>
